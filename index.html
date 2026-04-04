@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text Classification Report: DBpedia-14</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 900px;
+            margin: 40px auto;
+            background: #fff;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #2980b9;
+            margin-top: 30px;
+            border-bottom: 1px solid #ecf0f1;
+            padding-bottom: 5px;
+        }
+        h3 {
+            color: #34495e;
+            margin-top: 20px;
+        }
+        p {
+            margin-bottom: 15px;
+        }
+        ul {
+            margin-bottom: 15px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 0.95em;
+        }
+        table th, table td {
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            vertical-align: top;
+        }
+        table th {
+            background-color: #f8f9fa;
+            color: #333;
+            font-weight: bold;
+            text-align: center;
+        }
+        table tbody tr:nth-of-type(even) {
+            background-color: #f9f9f9;
+        }
+        .samples-table td:nth-child(1) {
+            font-weight: bold;
+            color: #2c3e50;
+            white-space: nowrap;
+        }
+        .samples-table td:nth-child(2) {
+            font-size: 0.9em;
+            color: #555;
+        }
+        .samples-table ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+        .samples-table li {
+            margin-bottom: 8px;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 20px auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .case-study {
+            background: #fdfefe;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .case-study blockquote {
+            font-style: italic;
+            color: #555;
+            background: #f4f6f7;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .caption {
+            text-align: center;
+            font-size: 0.9em;
+            color: #7f8c8d;
+            margin-top: -10px;
+            margin-bottom: 20px;
+        }
+        .diagram-container {
+            display: flex;
+            justify-content: center;
+            margin: 30px 0;
+            padding: 20px;
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+    </style>
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+</head>
+<body>
+
+<div class="container">
+    <h1>Text Classification</h1>
+
+    <h2>1. Dataset</h2>
+    <ul>
+        <li><strong>Dataset:</strong> DBpedia-14</li>
+        <li><strong>Src:</strong> <a href="https://huggingface.co/datasets/fancyzhx/dbpedia_14" target="_blank">https://huggingface.co/datasets/fancyzhx/dbpedia_14</a></li>
+        <li><strong>Total Training Samples:</strong> 560,000</li>
+        <li><strong>Total Testing Samples:</strong> 70,000</li>
+        <li><strong>Number of classes:</strong> 14</li>
+        <li><strong>Columns:</strong> label (0-13), title, content</li>
+    </ul>
+
+    <h2>2. Exploratory Data Analysis (EDA)</h2>
+    
+    <h3>2.1. Dataset Overview & Label Distribution</h3>
+    <p>The DBpedia-14 dataset is a large-scale text classification benchmark comprising 14 non-overlapping classes that cover a broad spectrum of Wikipedia entities. The dataset contains a total of 560,000 training samples and 70,000 testing samples.</p>
+    
+    <img src="public/1_Class_Distribution.png" alt="Class Distribution Plot">
+    <div class="caption">Figure: Uniform Class Distribution</div>
+
+    <p>As illustrated in the class distribution plot, the dataset is perfectly uniform, with every category containing exactly 40,000 training samples. This lack of class imbalance significantly simplifies the training process by removing the need for oversampling or weighted loss functions, establishing a highly stable baseline for comparing different neural network architectures.</p>
+
+    <h3>2.2. Text Length & Sequence Complexity</h3>
+    <p>To determine the optimal sequence length for our neural networks, we analyzed the word count distribution across the dataset.</p>
+    
+    <img src="public/2_Word_Count_Distribution.png" alt="Word Count Distribution Plot">
+    
+    <p>The Word Count Distribution plot demonstrates that the vast majority of introductory Wikipedia paragraphs are concise, heavily concentrated between 10 and 80 words, and tapering off significantly after 90 words. This insight directly informs our tokenization strategy, allowing us to set an efficient max_length that captures complete semantic context without incurring unnecessary padding and computational overhead.</p>
+
+    <h3>2.3. Lexical Analysis & Class Separability</h3>
+    <p>To understand the linguistic features our models will learn, we conducted a lexical analysis of the dataset focusing on vocabulary diversity, distinctive terms, and meaningful phrase patterns across all 14 categories.</p>
+
+    <img src="public/3_Vocabulary_Richness.png" alt="Vocabulary Richness Plot">
+
+    <p>We first examined Vocabulary Richness to gauge the lexical diversity required to master each class. Categories covering broad areas of human activity like <em>Artist</em>, <em>Company</em>, and <em>Film</em> have the highest number of unique words. In contrast, tightly defined structural or geographic categories like <em>MeanOfTransportation</em> and <em>Village</em> utilize a much more constrained vocabulary.</p>
+
+    <img src="public/5_TFIDF.png" alt="Top 5 TF-IDF Terms Plot">
+
+    <p>Next, we analyzed the Top 5 Most Distinctive Terms (TF-IDF) to isolate the unique single-word identifiers per class. This visualization reveals highly separable features across the ontology. For instance, the <em>EducationalInstitution</em> category is heavily anchored by expected terms like "school", "university", and "college", while the <em>Animal</em> category relies strictly on taxonomic terms like "family", "species", and "genus". This indicates a strong baseline of class-specific vocabulary for the models to leverage.</p>
+
+    <img src="public/6_Bigrams.png" alt="Top 5 Bigrams Plot">
+
+    <p>Analyzing the Top 5 Bigrams (Two-Word Phrases) helped us understand how the models might differentiate classes based on structural context:</p>
+    <ul>
+        <li><strong>Categories like Animal and Athlete</strong> possess highly explicit phrase patterns. The <em>Animal</em> class uses specific scientific pairings (like "marine gastropod"), and <em>Athlete</em> relies heavily on sports and biographical terms (such as "football player" or "summer olympics").</li>
+        <li><strong>The Company class</strong> exhibits bigrams dominated by structural and geographical identifiers (such as "united states", "company founded", or "record label").</li>
+        <li><strong>Potential Risk:</strong> We identified a notable structural issue within the <em>Film</em> category. The word "film" appears in almost every top phrase (e.g., "film directed", "drama film", "comedy film"). Because this explicit label identifier is heavily embedded within the text descriptions, a model might achieve a high accuracy score simply by hunting for the word "film" rather than actually learning the semantic context of a movie description.</li>
+    </ul>
+
+    <img src="public/4_Category_Similarity_Matrix.png" alt="Category Similarity Matrix">
+
+    <p>Finally, to map the linguistic boundaries between classes, we generated a Category Similarity Matrix using the cosine similarity of each category's mean TF-IDF vector. The heatmap reveals that the most prominent linguistic overlaps occur within clearly related topical domains, most notably between biological categories (<em>Animal</em> and <em>Plant</em> at a highly correlated 0.65) and biographical/entertainment categories (e.g., <em>Athlete</em> and <em>Artist</em> at 0.41). Crucially for our error analysis, the matrix also exposes subtle but measurable lexical overlaps involving the <em>Company</em> category, which intersects with <em>EducationalInstitution</em> (0.11) and <em>Building</em> (0.06). While these scores are lower than the major thematic clusters, this shared structural vocabulary highlights potential boundary ambiguities among physical and organizational entities.</p>
+
+    <h3>2.4. Dataset Samples</h3>
+    <p>To provide qualitative context for the DBpedia-14 structure, the table below highlights two representative Wikipedia lead paragraphs for each of the 14 ontological classes.</p>
+
+    <table class="samples-table">
+        <thead>
+            <tr>
+                <th>Category</th>
+                <th>Sample Extracts</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Company</td>
+                <td>
+                    <ul>
+                        <li>"Abbott of Farnham E D Abbott Limited was a British coachbuilding business based in Farnham Surrey trading under that name from 1929. A major part of their output was under sub-contract to motor vehicle manufacturers. Their business closed in 1972."</li>
+                        <li>"Schwan-STABILO is a German maker of pens for writing colouring and cosmetics as well as markers and highlighters for office use. It is the world's largest manufacturer of highlighter pens Stabilo Boss."</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td>Educational<br>Institution</td>
+                <td>
+                    <ul>
+                        <li>"Dubai Gem Private School (DGPS) is a British school located in the Oud Metha area of Dubai United Arab Emirates. Dubai Gem Nursery is located in Jumeirah. Together the institutions enroll almost 1500 students aged 3 to 18."</li>
+                        <li>"Gateford Park Primary School is a community primary school in Worksop Nottinghamshire in England."</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td>Artist</td>
+                <td>
+                    <ul>
+                        <li>"Erin Morgenstern (born July 8 1978) is an American writer and visual artist best known for writing The Night Circus."</li>
+                        <li>"	
+Morton Stevens (January 30 1929 – November 11 1991) was an American film score composer. In 1965 he became director of music for CBS West Coast operations. He is probably best known for composing the theme music for Hawaii Five-O a television series for which he won two Emmy Awards (in 1970 and 1974) and was nominated seven other times for work on television programs including Gunsmoke and Police Woman."</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td>Athlete</td>
+                <td>
+                    <ul>
+                        <li>"Martin Marty McKinnon (born 5 July 1975 in Adelaide) is a former Australian rules footballer who played with Adelaide Geelong and the Brisbane Lions in the Australian Football League (AFL).McKinnon was recruited by Adelaide in the 1992 AFL Draft with their first ever national draft pick. He was the youngest player on Adelaide's list at the time and played for Central District in the SANFL when not appearing with Adelaide."</li>
+                        <li>"Elena Yakovishina (born September 17 1992 in Petropavlovsk-Kamchatsky Russia) is an alpine skier from Russia. She competed for Russia at the 2014 Winter Olympics in the alpine skiing events."</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td>Office Holder</td>
+                <td>
+                    <ul>
+                        <li>"Augustus S. Porter (January 18 1769 – June 10 1849) was an American businessman judge farmer and politician who served as an Assemblyman for the state of New York."</li>
+                        <li>"John Gerald (Jack) Masters (born September 27 1931) is a former Canadian politician. He served as mayor of the city of Thunder Bay Ontario and as a federal Member of Parliament."</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td>Mean Of<br>Transportation</td>
+                <td>
+                    <ul>
+                        <li>"The Wedell-Williams XP-34 was a fighter aircraft design submitted to the United States Army Air Corps (USAAC) before World War II by Marguerite Clark Williams widow of millionaire Harry P. Williams former owner and co-founder of the Wedell-Williams Air Service Corporation."</li>
+                        <li>"USS Springfield (CL-66/CLG-7/CG-7) was one of 27 Cleveland-class light cruisers built for the United States Navy during World War II. She was the third US Navy ship to be named after Springfield Illinois. Commissioned in 1944 she served briefly in the Atlantic before transferring to the Pacific. There she served with fast carrier task forces primarily in an anti-aircraft role but also in a shore bombardment role in the last stages of the Pacific War."</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td>Building</td>
+                <td>
+                    <ul>
+                        <li>"Barber-Mulligan Farm is a historic farm located at Avon in Livingston County New York. The nearly 640-acre (260 ha) farm includes a number of original buildings as well as many improvements. The most important cluster is the central farm complex which includes the main house a carriage house horse barn and corn crib all built in 1852 by Aaron Barber. The house is an example of late Greek Revival architecture. Not far from the main house is a cobblestone tenant house built c."</li>
+                        <li>"Danat Al Emarat hospital is a future hospital for women and children in Abu Dhabi United Arab Emirates. With a completion date of 2011 it will have 170 beds upon opening with a maximum capacity of 260 beds. The projected cost for the hospital is $250 million. If completed the hospital would be the first in the United Arab Emirates to be controlled by an international company United Eastern Medical Services (UEM)."</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td>Natural Place</td>
+                <td>
+                    <ul>
+                        <li>"The Duruitoarea River is a tributary of the Camenca River in Romania."</li>
+                        <li>"Mount Jackson is a mountain located in Coos County New Hampshire. The mountain is named after Charles Thomas Jackson New Hampshire's state geologist in the 19th century and is part of the Presidential Range of the White Mountains. Mount."</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td>Village</td>
+                <td>
+                    <ul>
+                        <li>"Chayly is a village in the Qabala Rayon of Azerbaijan.It is suspected that this village has undergone a name change or no longer exists as no Azerbaijani website mentions it under this name."</li>
+                        <li>"	
+Piskarki [pisˈkarki] is a village in the administrative district of Gmina Jeżewo within Świecie County Kuyavian-Pomeranian Voivodeship in north-central Poland.The village has a population of 135."</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td>Animal</td>
+                <td>
+                    <ul>
+                        <li>"	
+Halaiba is a genus of fly in the family Dolichopodidae."</li>
+                        <li>"Americardia media common name the Atlantic strawberry cockle is a species of saltwater clam a marine bivalve mollusc in the family Cardiidae the cockles. This species can be found along the Atlantic coast of North America from Cape Hatteras to the West Indies."</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td>Plant</td>
+                <td>
+                    <ul>
+                        <li>"Utricularia simulans the fringed bladderwort is a small to medium-sized probably perennial carnivorous plant that belongs to the genus Utricularia. U. simulans is native to tropical Africa and the Americas. It grows as a terrestrial plant in damp sandy soils in open savanna at altitudes from near sea level to 1575 m (5167 ft). U. simulans was originally described and published by Robert Knud Friedrich Pilger in 1914."</li>
+                        <li>"Bur-reed sedge (Carex sparganioides) is a perennial plant belonging to the sedge family (Cyperaceae). Its native range includes most of the Eastern and Central U.S. and it is typically found in hardwood or mixed forests. It typically grows 30–100 centimeters (12–39 in) high and contains teardrop-shaped seed sacs within egg-shaped spikelets.Carex sparganioides is considered endangered in Maine and New Hampshire. Good for soil stabilization on shaded slopes."</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td>Album</td>
+                <td>
+                    <ul>
+                        <li>"La Sept is a 1989 promotional album of music for La Sept written by Michael Nyman and performed by the Michael Nyman Band. It is Nyman's fourteenth release. Gabrielle Lester makes her debut with the band on this album. After a 13-year hiatus (at least from recording) with the band she would replace the departing Alexander Balanescu as concertmaster for The Michael Nyman Band during the recording of Facing Goya and as of 2008 remains in that position."</li>
+                        <li>"Epikindyna Paihnidia (Dangerous games) is the debut album by popular Greek artist Elli Kokkinou. It was released in 1999 by Sony Music Greece. This album is currently out of print."</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td>Film</td>
+                <td>
+                    <ul>
+                        <li>"The Nuisance is a 1933 film starring Lee Tracy as a lawyer Madge Evans as his love interest (with a secret) and Frank Morgan as his accomplice."</li>
+                        <li>"Le mataf (Italian: Tre per una grande rapina) is a 1973 drama film directed by Serge Leroy and starring Michel Constantin."</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td>Written Work</td>
+                <td>
+                    <ul>
+                        <li>"Not to be confused with Kaiketsu ZorroKaiketsu Zorori (かいけつゾロリ Incredible Zorori) is a popular Japanese children's book series created by Yutaka Hara and published by Poplar Publishing. The original books were also made into an OVA animated feature-length film anime and comic. They all have Zorori in the title."</li>
+                        <li>"How to Live (full name How to Live or a life of Montaigne in one question and twenty attempts at an answer) by Sarah Bakewell was published by Chatto & Windus in 2010 and by Other Press on September 20 2011. It is about the life of 16th century nobleman wine grower and essayist Michel Eyquem de Montaigne. In it Bakewell roughly maps out Montaigne's life against the questions he raises along the way drawing the answers to these questions from his Essays."</li>
+                    </ul>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>3. Dataset, DataLoader, and Augmentation Setup</h2>
+    
+    <h3>3.1. Data Processing and Tokenization Strategy</h3>
+    <p>With the insights from the EDA, specifically the word count distribution, we optimized our sequence lengths. For all models, text sequences were configured to pad or truncate to a strict maximum length of 100 tokens. This ensures we capture the necessary semantic context without incurring unnecessary computational overhead from excessive padding. The data pipelines were customized depending on the model architecture:</p>
+    <ul>
+        <li><strong>Transformer Pipeline:</strong> Tokenization was handled via Hugging Face's <code>AutoTokenizer</code>.</li>
+        <li><strong>RNN Pipeline:</strong> A custom vocabulary was generated dynamically from the training data, allocating specific indices for padding and unknown tokens.</li>
+    </ul>
+
+    <h3>3.2 Embeddings & Augmentation</h3>
+    <p>For the recurrent architectures, pre-trained GloVe embeddings (100-dimensional) were loaded into a continuous embedding matrix. The embedding layer was set to unfreezed. This allowed the pre-trained weights to be fine-tuned during the training process to better capture the specific semantic boundaries of the 14 DBpedia classes.</p>
+
+    <h3>Pipeline Architecture Diagram</h3>
+    <p>Below is the structural flow of the data from raw text to the final classification decision across both model methodologies.</p>
+    
+    <div class="diagram-container">
+        <div class="mermaid">
+        flowchart LR
+            Input[<b>Input</b>] 
+            --> Preprocessing[<b>Preprocessing</b>] 
+            --> Backbone[<b>Backbone</b>] 
+            --> Classification[<b>Classification</b>] 
+            --> Output[<b>Output</b>] 
+
+            classDef stage fill:#fdfefe,stroke:#3498db,stroke-width:2px,color:#2c3e50;
+            classDef out fill:#e8f8f5,stroke:#27ae60,stroke-width:2px,color:#2c3e50;
+            
+            class Input,Preprocessing,Backbone,Classification stage;
+            class Output out;
+        </div>
+    </div>
+
+    <h2>4. Model Building, Training, Evaluation, and Comparison</h2>
+    
+    <h3>4.1 Model Architectures</h3>
+    <p>Two distinct categories of neural network architectures were implemented and evaluated to establish a comprehensive baseline:</p>
+    <ul>
+        <li><strong>Recurrent Neural Networks (RNNs):</strong>
+            <ul>
+                <li><strong>BiLSTM:</strong> A Bidirectional Long Short-Term Memory network utilizing a 100-dimensional embedding layer, followed by an LSTM layer. The final hidden states from both directions are concatenated before passing into the fully connected classification head.</li>
+                <li><strong>BiGRU:</strong> A Bidirectional Gated Recurrent Unit, utilizing the same dimensionality and concatenation strategy to evaluate whether the simplified gate structure provides efficiency gains over the LSTM.</li>
+            </ul>
+        </li>
+        <li><strong>Transformers:</strong> Utilized via Hugging Face's API, relying on DistilBERT and RoBERTa backbones adapted for 14-class sequence classification.</li>
+    </ul>
+
+    <h3>4.2 Training Configuration</h3>
+    <p>The optimizer used was AdamW, with learning rates explicitly tuned to the architecture type: 1e-3 for the recurrent neural networks (BiLSTM and BiGRU) and 2e-5 for the fine-tuning of the Transformer models (DistilBERT and RoBERTa). The loss function was <code>CrossEntropyLoss</code>.</p>
+
+    <h2>5. Experimental Results Report: Tables, Figures, Analysis, and Discussion</h2>
+    <p>Table 1 below displays the comprehensive performance and efficiency metrics for all evaluated backbones.</p>
+
+    <h3>Table 1: Backbone Comparison Metrics</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Model</th>
+                <th>Accuracy</th>
+                <th>Macro F1</th>
+                <th>Inference Time (s)</th>
+                <th>Inf. Memory (MB)</th>
+                <th>Learnable Params</th>
+                <th>Train Time (s)</th>
+                <th>Train Mem (MB)</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>DistilBERT</td>
+                <td>98.71%</td>
+                <td>0.9871</td>
+                <td>14.28</td>
+                <td>474.66</td>
+                <td>66,964,238</td>
+                <td>399.12</td>
+                <td>1808.61</td>
+            </tr>
+            <tr>
+                <td>RoBERTa</td>
+                <td>98.54%</td>
+                <td>0.9854</td>
+                <td>13.81</td>
+                <td>533.50</td>
+                <td>82,129,166</td>
+                <td>459.11</td>
+                <td>1997.23</td>
+            </tr>
+            <tr>
+                <td>BiLSTM</td>
+                <td>97.04%</td>
+                <td>0.9704</td>
+                <td>1.11</td>
+                <td>172.23</td>
+                <td>9,875,418</td>
+                <td>57.07</td>
+                <td>225.59</td>
+            </tr>
+            <tr>
+                <td>BiGRU</td>
+                <td>97.30%</td>
+                <td>0.9729</td>
+                <td>0.99</td>
+                <td>189.97</td>
+                <td>9,816,538</td>
+                <td>47.25</td>
+                <td>293.74</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>Confusion Matrices</h3>
+    
+    <img src="public/distilbert_confusion_matrix.png" alt="DistilBERT Confusion Matrix">
+    <div class="caption">Figure 1: Confusion Matrix for DistilBERT. Note the high density along the true-positive diagonal with minimal misclassifications.</div>
+
+    <img src="public/roberta_confusion_matrix.png" alt="RoBERTa Confusion Matrix">
+    <div class="caption">Figure 2: Confusion Matrix for RoBERTa.</div>
+
+    <img src="public/bilstm_confusion_matrix.png" alt="BiLSTM Confusion Matrix">
+    <div class="caption">Figure 3: Confusion Matrix for BiLSTM. Observe the slight increase in false positives between semantically adjacent classes compared to the Transformer models.</div>
+
+    <img src="public/bigru_confusion_matrix.png" alt="BiGRU Confusion Matrix">
+    <div class="caption">Figure 4: Confusion Matrix for BiGRU.</div>
+
+    <h3>Analysis & Discussion</h3>
+    <p>The experimental results showcase a classic trade-off between absolute predictive power and computational efficiency:</p>
+    <ul>
+        <li><strong>Performance Peak:</strong> DistilBERT achieved the highest overall performance, yielding an accuracy of 98.71% and a macro F1 score of 0.9871. It slightly outperformed RoBERTa (98.54% accuracy) while requiring fewer learnable parameters (roughly 66.9 million compared to RoBERTa's 82.1 million) and less training memory (1808.61 MB vs 1997.23 MB).</li>
+        <li><strong>Efficiency Peak:</strong> The RNN models represent highly efficient baselines. The BiGRU achieved a highly respectable 97.30% accuracy while utilizing only 9.8 million parameters.</li>
+        <li><strong>Matrix Analysis:</strong> A review of the generated confusion matrices (Figures 1-4) indicates that while all models perform exceptionally well, the RNN models exhibit slightly more false positives between similar classes (e.g., Plant vs. Animal), likely due to the lack of deep contextual self-attention found in transformers.</li>
+    </ul>
+
+    <h2>6. Model Efficiency Analysis</h2>
+    <p>The metrics collected reveal stark efficiency disparities that heavily influence deployment viability.</p>
+    <ul>
+        <li><strong>Training Footprint:</strong> The BiGRU trained in just 47.25 seconds, utilizing only 293.74 MB of VRAM. The BiLSTM was similarly lightweight, using only 225.59 MB of training memory. Conversely, RoBERTa took nearly 10 times as long to train (459.11 seconds) and consumed almost 2 GB of VRAM.</li>
+        <li><strong>Inference Bottlenecks:</strong> For real-world applications, inference latency is critical. The BiGRU processed the evaluation batches in just 0.99 seconds, whereas DistilBERT took 14.28 seconds. For systems where a ~97% accuracy threshold is acceptable, deploying an RNN over a Transformer yields a >14x speedup in user-facing latency.</li>
+    </ul>
+
+    <h2>7. Error Analysis (Hard Examples)</h2>
+    <p>An analysis of misclassified "hard examples" reveals distinct behavioral differences between how transformers and RNNs parse complex contextual text.</p>
+
+    <div class="case-study">
+        <h3>Example Case 1: Complex Entanglement</h3>
+        <blockquote>"Mamunur Rashid (Bengali: মামুনুর রশীদ; born 29 February 1948) is one of the pioneering theatre activists in Bangladesh. He is the chief secretary of leading theatre group Aranyak (theatre group) which plays crucial roles in creating common people aware about their rights through his plays. He was born on 29 February in 1948 in the village Paikora under Kalhati upazila in Tangail. One of the most popular production of his group is Rarang which deals with the life of Santal."</blockquote>
+        <p><strong>Actual Label:</strong> Artist</p>
+        <p><strong>Model Predictions:</strong></p>
+        <ul>
+            <li><strong>DistilBERT:</strong> Artist (Correct)</li>
+            <li><strong>RoBERTa:</strong> Artist (Correct)</li>
+            <li><strong>BiLSTM:</strong> Athlete (Incorrect)</li>
+            <li><strong>BiGRU:</strong> OfficeHolder (Incorrect)</li>
+        </ul>
+        <p><strong>Discussion:</strong> The text contains overlapping contextual clues. Transformers correctly synthesized "theatre" and "plays" across the full sequence to deduce <em>Artist</em>. The RNNs frequently failed here, likely over-indexing on localized structural words that triggered <em>Athlete</em> or <em>Office Holder</em> associations in their embedding spaces.</p>
+    </div>
+
+    <div class="case-study">
+        <h3>Example Case 2: Historical Ambiguity</h3>
+        <blockquote>"Atâ-Malek Juvayni (1226–1283) (Persian: عطاملک جوینی‎) in full Ala al-Din Ata-ullah (Persian: علاءالدین عطاالله‎) was a Persian historian who wrote an account of the Mongol Empire entitled Tarīkh-i Jahān-gushā (History of the World Conqueror).He was born in Juvayn a city in Khorasan in northeastern Iran. Both his grandfather and his father Baha al-Din had held the post of sahib-divan or Minister of Finance for Muhammad Jalal al-Din and Ögedei Khan respectively."</blockquote>
+        <p><strong>Actual Label:</strong> Office Holder</p>
+        <p><strong>Model Predictions:</strong></p>
+        <ul>
+            <li><strong>DistilBERT:</strong> OfficeHolder (Correct)</li>
+            <li><strong>RoBERTa:</strong> Artist (Incorrect)</li>
+            <li><strong>BiLSTM:</strong> Artist (Incorrect)</li>
+            <li><strong>BiGRU:</strong> Artist (Incorrect)</li>
+        </ul>
+        <p><strong>Discussion:</strong> This text heavily features words related to writing ("historian", "wrote an account"), leading baseline models to guess <em>Artist</em>. Only the attention mechanisms in DistilBERT were able to accurately weigh the concluding sentences regarding "Minister of Finance" and apply that classification to the subject, showcasing superior long-range dependency resolution compared to the RNNs and even its heavier counterpart, RoBERTa.</p>
+    </div>
+
+</div>
+
+</body>
+</html>
