@@ -1,498 +1,1747 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Text Classification Report: DBpedia-14</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            background-color: #f4f7f6;
-            margin: 0;
-            padding: 0;
+      :root {
+        --primary-color: #2c3e50;
+        --secondary-color: #3498db;
+        --accent-color: #e67e22;
+        --bg-light: #f4f7f6;
+        --white: #ffffff;
+        --text-main: #333;
+        --text-muted: #7f8c8d;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        line-height: 1.6;
+        color: var(--text-main);
+        background:
+          radial-gradient(circle at 10% 10%, #e9f3ff 0%, transparent 35%),
+          radial-gradient(circle at 90% 20%, #fff4e7 0%, transparent 30%),
+          var(--bg-light);
+        margin: 0;
+        padding: 0;
+        scroll-behavior: smooth;
+      }
+
+      body::before,
+      body::after {
+        content: "";
+        position: fixed;
+        width: 280px;
+        height: 280px;
+        border-radius: 50%;
+        filter: blur(55px);
+        z-index: -1;
+        opacity: 0.35;
+        animation: floatBlob 16s ease-in-out infinite;
+      }
+
+      body::before {
+        top: -100px;
+        left: -80px;
+        background: #8dc5ff;
+      }
+
+      body::after {
+        bottom: -120px;
+        right: -80px;
+        background: #ffd19f;
+        animation-delay: 2.5s;
+      }
+
+      @keyframes floatBlob {
+        0%,
+        100% {
+          transform: translate(0, 0) scale(1);
         }
-        .container {
-            max-width: 900px;
-            margin: 40px auto;
-            background: #fff;
-            padding: 40px;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        50% {
+          transform: translate(18px, -14px) scale(1.06);
         }
-        h1 {
-            text-align: center;
-            color: #2c3e50;
-            border-bottom: 2px solid #ecf0f1;
-            padding-bottom: 10px;
+      }
+
+      /* Navigation Bar */
+      nav {
+        background: var(--primary-color);
+        padding: 1rem 2rem;
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+
+      nav a {
+        color: white;
+        text-decoration: none;
+        font-weight: 500;
+        margin-left: 20px;
+        transition: color 0.3s;
+        position: relative;
+      }
+
+      nav a:hover {
+        color: var(--secondary-color);
+      }
+
+      nav a::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        bottom: -4px;
+        width: 100%;
+        height: 2px;
+        background: var(--secondary-color);
+        transform: scaleX(0);
+        transform-origin: left;
+        transition: transform 0.25s ease;
+      }
+
+      nav a:hover::after {
+        transform: scaleX(1);
+      }
+
+      .section-controls {
+        position: fixed;
+        top: 78px;
+        right: 5%;
+        z-index: 1050;
+        display: flex;
+        gap: 10px;
+        padding: 8px;
+        border-radius: 999px;
+        background: rgba(20, 37, 61, 0.92);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+        backdrop-filter: blur(6px);
+      }
+
+      .section-controls button {
+        border: none;
+        border-radius: 999px;
+        padding: 8px 14px;
+        font-weight: 700;
+        cursor: pointer;
+        color: #1f3558;
+        background: #e9f1ff;
+        transition:
+          transform 0.2s ease,
+          background 0.2s ease;
+      }
+
+      .section-controls button:hover {
+        transform: translateY(-1px);
+        background: #d7e6ff;
+      }
+
+      .section-controls button[data-action="collapse-all"] {
+        color: #fff;
+        background: #d35400;
+      }
+
+      .section-controls button[data-action="collapse-all"]:hover {
+        background: #b84800;
+      }
+
+      .scroll-progress {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 0;
+        height: 4px;
+        z-index: 1200;
+        background: linear-gradient(90deg, #5ab6f9, #f6a14a);
+        box-shadow: 0 1px 8px rgba(52, 152, 219, 0.5);
+      }
+
+      .container {
+        max-width: 1000px;
+        margin: 40px auto;
+        padding: 0 20px;
+      }
+
+      /* Section Titles */
+      .section-title {
+        color: var(--primary-color);
+        border-bottom: 3px solid var(--secondary-color);
+        padding-bottom: 10px;
+        margin-top: 50px;
+        font-size: 2rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        cursor: pointer;
+        user-select: none;
+      }
+
+      .section-toggle-icon {
+        font-size: 1rem;
+        color: #5d6d7e;
+        transition: transform 0.2s ease;
+      }
+
+      .collapsible-section.is-collapsed > .section-title .section-toggle-icon {
+        transform: rotate(180deg);
+      }
+
+      .collapsible-section.is-collapsed > *:not(.section-title) {
+        display: none;
+      }
+
+      /* Content Boxes */
+      .content-box {
+        background: var(--white);
+        padding: 25px;
+        margin-bottom: 30px;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        transition:
+          transform 0.25s ease,
+          box-shadow 0.25s ease;
+      }
+
+      .content-box:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 10px 28px rgba(44, 62, 80, 0.12);
+      }
+
+      .content-box h3 {
+        color: var(--primary-color);
+        border-left: 5px solid var(--secondary-color);
+        padding-left: 15px;
+        margin-top: 0;
+      }
+
+      .analysis-hub {
+        background: #f7f8fb;
+        border: 1px solid #d9deee;
+      }
+
+      .analysis-hub h3 {
+        margin-bottom: 18px;
+      }
+
+      .tutorial-box {
+        background: #efeff2;
+        border-left: 4px solid #5a71dc;
+        border-radius: 8px;
+        padding: 18px 20px;
+        color: #48546c;
+        margin-bottom: 18px;
+      }
+
+      .tutorial-box h4 {
+        margin: 0 0 10px;
+        color: #5a71dc;
+        font-size: 1.05rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        cursor: pointer;
+        user-select: none;
+      }
+
+      .tutorial-box p {
+        margin: 0 0 10px;
+      }
+
+      .tutorial-box p:last-child {
+        margin-bottom: 0;
+      }
+
+      .tutorial-toggle-icon {
+        font-size: 0.9rem;
+        transition: transform 0.2s ease;
+      }
+
+      .tutorial-box.is-collapsed p {
+        display: none;
+      }
+
+      .tutorial-box.is-collapsed .tutorial-toggle-icon {
+        transform: rotate(-90deg);
+      }
+
+      .toggle-list {
+        display: grid;
+        gap: 12px;
+      }
+
+      .toggle-item {
+        border: 1px solid #d9deee;
+        border-radius: 10px;
+        background: #fff;
+        overflow: hidden;
+      }
+
+      .toggle-btn {
+        width: 100%;
+        border: none;
+        background: #eef2ff;
+        color: #2b3d5f;
+        padding: 14px 16px;
+        text-align: left;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 1rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition:
+          background 0.2s ease,
+          color 0.2s ease;
+      }
+
+      .toggle-btn:hover {
+        background: #e1e9ff;
+      }
+
+      .toggle-btn i {
+        transition: transform 0.25s ease;
+      }
+
+      .toggle-item.is-open .toggle-btn i {
+        transform: rotate(180deg);
+      }
+
+      .toggle-item.is-open .toggle-btn {
+        background: #dbe7ff;
+        color: #243551;
+      }
+
+      .toggle-content {
+        display: none;
+        padding: 14px 16px 4px;
+        background: #fff;
+      }
+
+      .toggle-item.is-open .toggle-content {
+        display: block;
+      }
+
+      .code-tools {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+
+      .code-tool-btn {
+        border: none;
+        background: #3498db;
+        color: #fff;
+        border-radius: 6px;
+        padding: 6px 12px;
+        cursor: pointer;
+        font-weight: 600;
+      }
+
+      .code-tool-btn:hover {
+        background: #2f80b6;
+      }
+
+      .code-editor {
+        width: 100%;
+        min-height: 450px;
+        border: none;
+        border-radius: 0 8px 8px 0;
+        padding: 12px;
+        font-family: "Consolas", "Courier New", Courier, monospace;
+        font-size: 0.9rem;
+        line-height: 1.45;
+        resize: vertical;
+        box-sizing: border-box;
+        background: #0f172a;
+        color: #e2e8f0;
+      }
+
+      .code-editor:focus {
+        outline: none;
+      }
+
+      .code-editor-shell {
+        display: grid;
+        grid-template-columns: 52px 1fr;
+        border: 1px solid #cbd5e1;
+        border-radius: 10px;
+        overflow: hidden;
+        background: #0f172a;
+        box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.08);
+      }
+
+      .code-line-numbers {
+        margin: 0;
+        padding: 12px 10px;
+        text-align: right;
+        background: #111827;
+        color: #7c8aa5;
+        border-right: 1px solid #1f2937;
+        user-select: none;
+        overflow: hidden;
+      }
+
+      .code-line-numbers span {
+        display: block;
+        font-family: "Consolas", "Courier New", Courier, monospace;
+        font-size: 0.82rem;
+        line-height: 1.45;
+      }
+
+      .intro-text {
+        font-size: 1.1rem;
+        color: #555;
+        margin-bottom: 30px;
+      }
+
+      /* Stats Grid */
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+        margin: 25px 0;
+        text-align: center;
+      }
+
+      .stat-item {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 10px;
+        border: 1px solid #dee2e6;
+        transition: transform 0.3s;
+      }
+
+      .stat-item:hover {
+        transform: translateY(-5px);
+      }
+
+      .stat-value {
+        display: block;
+        font-size: 1.8rem;
+        font-weight: bold;
+        color: var(--primary-color);
+      }
+
+      .stat-label {
+        font-size: 0.95rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      /* Images & Captions */
+      .image-container {
+        text-align: center;
+        background: #fafafa;
+        padding: 25px;
+        border: 1px dashed #ddd;
+        margin: 25px 0;
+        border-radius: 8px;
+      }
+
+      .image-container img {
+        max-width: 100%;
+        height: auto;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .caption {
+        font-style: italic;
+        font-size: 0.9rem;
+        color: var(--text-muted);
+        margin-top: 15px;
+      }
+
+      .results-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 20px 0;
+        background: #fff;
+      }
+      .results-table th,
+      .results-table td {
+        border: 1px solid #ddd;
+        padding: 12px;
+        text-align: left;
+        vertical-align: top;
+      }
+      .results-table th {
+        background-color: #f8f9fa;
+        color: #333;
+        text-align: center;
+      }
+      .results-table td:nth-child(1) {
+        font-weight: bold;
+        color: #2c3e50;
+        white-space: nowrap;
+      }
+      .highlight-text {
+        color: #27ae60;
+        font-weight: bold;
+      }
+      .observation-box {
+        background: #fdfdfd;
+        padding: 20px;
+        border-left: 5px solid #3498db;
+        margin-top: 15px;
+      }
+      .grid-two-col {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        margin-bottom: 20px;
+      }
+
+      .case-study {
+        background: #fff;
+        border: 1px solid #e1e4e8;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+      }
+      .case-study blockquote {
+        font-style: italic;
+        color: #555;
+        background: #f4f6f7;
+        padding: 10px;
+        border-radius: 4px;
+        margin: 10px 0;
+      }
+      .badge {
+        padding: 3px 10px;
+        border-radius: 20px;
+        font-size: 0.85em;
+        font-weight: bold;
+        display: inline-block;
+        margin-right: 4px;
+      }
+      .badge-danger {
+        background: #fab1a0;
+        color: #d63031;
+      }
+      .badge-success {
+        background: #c3f0c3;
+        color: #1e824c;
+      }
+      .badge-tech {
+        background: #dbe7ff;
+        color: #22345b;
+      }
+
+      .highlight-row {
+        background-color: #e8f4fd;
+        color: #2c3e50;
+        font-weight: bold;
+      }
+
+      .github-url {
+        font-size: 1.25em;
+        font-weight: bold;
+        color: #3498db;
+        text-decoration: none;
+        word-break: break-all;
+        border-bottom: 2px solid transparent;
+        transition: all 0.3s ease;
+      }
+
+      .github-url:hover {
+        color: #2c3e50;
+        border-bottom: 2px solid #2c3e50;
+      }
+
+      .github-link-container {
+        transition: transform 0.3s ease;
+      }
+
+      .github-link-container:hover {
+        transform: translateY(-5px);
+      }
+
+      .conclusion-highlight {
+        background-color: #f8fafc;
+        border-top: 4px solid var(--primary-color);
+      }
+
+      .conclusion-highlight h3 {
+        color: var(--primary-color);
+        margin-bottom: 20px;
+      }
+      
+      .observation-box i {
+        margin-right: 8px;
+        color: var(--primary-color);
+      }
+
+      footer {
+        text-align: center;
+        padding: 40px 0;
+        color: var(--text-muted);
+        border-top: 1px solid #ddd;
+        margin-top: 60px;
+      }
+
+      .reveal {
+        opacity: 0;
+        transform: translateY(18px);
+        transition:
+          opacity 0.45s ease,
+          transform 0.45s ease;
+      }
+
+      .reveal.is-visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      /* Responsive */
+      @media (max-width: 768px) {
+        .section-controls {
+          top: 72px;
+          width: calc(100% - 24px);
+          border-radius: 14px;
+          justify-content: center;
         }
-        h2 {
-            color: #2980b9;
-            margin-top: 30px;
-            border-bottom: 1px solid #ecf0f1;
-            padding-bottom: 5px;
+        .stats-grid {
+          grid-template-columns: 1fr;
         }
-        h3 {
-            color: #34495e;
-            margin-top: 20px;
+        .grid-two-col {
+          grid-template-columns: 1fr;
         }
-        p {
-            margin-bottom: 15px;
+        .section-title {
+          font-size: 1.5rem;
         }
-        ul {
-            margin-bottom: 15px;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          animation: none !important;
+          transition: none !important;
         }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 20px 0;
-            font-size: 0.95em;
-        }
-        table th, table td {
-            padding: 12px 15px;
-            border: 1px solid #ddd;
-            vertical-align: top;
-        }
-        table th {
-            background-color: #f8f9fa;
-            color: #333;
-            font-weight: bold;
-            text-align: center;
-        }
-        table tbody tr:nth-of-type(even) {
-            background-color: #f9f9f9;
-        }
-        .samples-table td:nth-child(1) {
-            font-weight: bold;
-            color: #2c3e50;
-            white-space: nowrap;
-        }
-        .samples-table td:nth-child(2) {
-            font-size: 0.9em;
-            color: #555;
-        }
-        .samples-table ul {
-            margin: 0;
-            padding-left: 20px;
-        }
-        .samples-table li {
-            margin-bottom: 8px;
-        }
-        img {
-            max-width: 100%;
-            height: auto;
-            display: block;
-            margin: 20px auto;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-        .case-study {
-            background: #fdfefe;
-            border-left: 4px solid #3498db;
-            padding: 15px;
-            margin-bottom: 20px;
-        }
-        .case-study blockquote {
-            font-style: italic;
-            color: #555;
-            background: #f4f6f7;
-            padding: 10px;
-            border-radius: 4px;
-            margin: 10px 0;
-        }
-        .caption {
-            text-align: center;
-            font-size: 0.9em;
-            color: #7f8c8d;
-            margin-top: -10px;
-            margin-bottom: 20px;
-        }
-        .diagram-container {
-            display: flex;
-            justify-content: center;
-            margin: 30px 0;
-            padding: 20px;
-            background: #fff;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-        }
+      }
     </style>
-    <script type="module">
-        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
-        mermaid.initialize({ startOnLoad: true, theme: 'default' });
-    </script>
-</head>
-<body>
+  </head>
+  <body>
+    <div class="scroll-progress" id="scroll-progress"></div>
+    <nav>
+      <div style="color: white; font-weight: bold; font-size: 1.2rem">
+        Group LTH - DL Assignment
+      </div>
+      <div>
+        <a href="index.html">Home</a>
+        <a href="image.html">Image</a>
+        <a href="text.html" style="color: var(--secondary-color)">Text</a>
+        <a href="multimodal.html">Multimodal</a>
+      </div>
+    </nav>
 
-<div class="container">
-    <h1>Text Classification</h1>
+    <div
+      class="section-controls"
+      id="section-controls"
+      aria-label="Section Controls"
+    >
+      <button type="button" data-action="expand-all">
+        <i class="fas fa-expand-alt"></i> Expand All
+      </button>
+      <button type="button" data-action="collapse-all">
+        <i class="fas fa-compress-alt"></i> Collapse All
+      </button>
+    </div>
 
-    <h2>1. Dataset</h2>
-    <ul>
-        <li><strong>Dataset:</strong> DBpedia-14</li>
-        <li><strong>Src:</strong> <a href="https://huggingface.co/datasets/fancyzhx/dbpedia_14" target="_blank">https://huggingface.co/datasets/fancyzhx/dbpedia_14</a></li>
-        <li><strong>Total Training Samples:</strong> 560,000</li>
-        <li><strong>Total Testing Samples:</strong> 70,000</li>
-        <li><strong>Number of classes:</strong> 14</li>
-        <li><strong>Columns:</strong> label (0-13), title, content</li>
-    </ul>
+    <div class="container">
+      <section id="dataset-exploration">
+        <h2 class="section-title">1. Dataset Overview</h2>
 
-    <h2>2. Exploratory Data Analysis (EDA)</h2>
-    
-    <h3>2.1. Dataset Overview & Label Distribution</h3>
-    <p>The DBpedia-14 dataset is a large-scale text classification benchmark comprising 14 non-overlapping classes that cover a broad spectrum of Wikipedia entities. The dataset contains a total of 560,000 training samples and 70,000 testing samples.</p>
-    
-    <img src="public/1_Class_Distribution.png" alt="Class Distribution Plot">
-    <div class="caption">Figure: Uniform Class Distribution</div>
+        <div class="content-box">
+          <h3>Dataset: DBpedia-14</h3>
+          <p>
+            Source:
+            <a
+              href="https://huggingface.co/datasets/fancyzhx/dbpedia_14"
+              target="_blank"
+              >Hugging Face - DBpedia 14</a
+            >
+          </p>
+          <p>
+            The DBpedia-14 dataset is a large-scale text classification benchmark comprising 14 non-overlapping classes that cover a broad spectrum of Wikipedia entities. While the full dataset contains 560,000 training and 70,000 testing samples, <strong>we utilize a highly controlled, stratified subset of 28,000 samples for training and 7,000 samples for testing</strong>. This ensures uniform class representation while optimizing computational efficiency for multiple model runs.
+          </p>
 
-    <p>As illustrated in the class distribution plot, the dataset is perfectly uniform, with every category containing exactly 40,000 training samples. This lack of class imbalance significantly simplifies the training process by removing the need for oversampling or weighted loss functions, establishing a highly stable baseline for comparing different neural network architectures.</p>
+          <div class="stats-grid" style="grid-template-columns: repeat(2, 1fr);">
+            <div class="stat-item">
+              <span class="stat-value" style="font-size: 1.5rem">560k / 70k</span>
+              <span class="stat-label">Total Train / Test</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-value" style="font-size: 1.5rem">28k / 7k</span>
+              <span class="stat-label">Stratified Subset Used</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-value" style="font-size: 1.5rem">14</span>
+              <span class="stat-label">Unique Classes</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-value" style="font-size: 1.5rem">Single-label</span>
+              <span class="stat-label">Classification Type</span>
+            </div>
+          </div>
 
-    <h3>2.2. Text Length & Sequence Complexity</h3>
-    <p>To determine the optimal sequence length for our neural networks, we analyzed the word count distribution across the dataset.</p>
-    
-    <img src="public/2_Word_Count_Distribution.png" alt="Word Count Distribution Plot">
-    
-    <p>The Word Count Distribution plot demonstrates that the vast majority of introductory Wikipedia paragraphs are concise, heavily concentrated between 10 and 80 words, and tapering off significantly after 90 words. This insight directly informs our tokenization strategy, allowing us to set an efficient max_length that captures complete semantic context without incurring unnecessary padding and computational overhead.</p>
-
-    <h3>2.3. Lexical Analysis & Class Separability</h3>
-    <p>To understand the linguistic features our models will learn, we conducted a lexical analysis of the dataset focusing on vocabulary diversity, distinctive terms, and meaningful phrase patterns across all 14 categories.</p>
-
-    <img src="public/3_Vocabulary_Richness.png" alt="Vocabulary Richness Plot">
-
-    <p>We first examined Vocabulary Richness to gauge the lexical diversity required to master each class. Categories covering broad areas of human activity like <em>Artist</em>, <em>Company</em>, and <em>Film</em> have the highest number of unique words. In contrast, tightly defined structural or geographic categories like <em>MeanOfTransportation</em> and <em>Village</em> utilize a much more constrained vocabulary.</p>
-
-    <img src="public/5_TFIDF.png" alt="Top 5 TF-IDF Terms Plot">
-
-    <p>Next, we analyzed the Top 5 Most Distinctive Terms (TF-IDF) to isolate the unique single-word identifiers per class. This visualization reveals highly separable features across the ontology. For instance, the <em>EducationalInstitution</em> category is heavily anchored by expected terms like "school", "university", and "college", while the <em>Animal</em> category relies strictly on taxonomic terms like "family", "species", and "genus". This indicates a strong baseline of class-specific vocabulary for the models to leverage.</p>
-
-    <img src="public/6_Bigrams.png" alt="Top 5 Bigrams Plot">
-
-    <p>Analyzing the Top 5 Bigrams (Two-Word Phrases) helped us understand how the models might differentiate classes based on structural context:</p>
-    <ul>
-        <li><strong>Categories like Animal and Athlete</strong> possess highly explicit phrase patterns. The <em>Animal</em> class uses specific scientific pairings (like "marine gastropod"), and <em>Athlete</em> relies heavily on sports and biographical terms (such as "football player" or "summer olympics").</li>
-        <li><strong>The Company class</strong> exhibits bigrams dominated by structural and geographical identifiers (such as "united states", "company founded", or "record label").</li>
-        <li><strong>Potential Risk:</strong> We identified a notable structural issue within the <em>Film</em> category. The word "film" appears in almost every top phrase (e.g., "film directed", "drama film", "comedy film"). Because this explicit label identifier is heavily embedded within the text descriptions, a model might achieve a high accuracy score simply by hunting for the word "film" rather than actually learning the semantic context of a movie description.</li>
-    </ul>
-
-    <img src="public/4_Category_Similarity_Matrix.png" alt="Category Similarity Matrix">
-
-    <p>Finally, to map the linguistic boundaries between classes, we generated a Category Similarity Matrix using the cosine similarity of each category's mean TF-IDF vector. The heatmap reveals that the most prominent linguistic overlaps occur within clearly related topical domains, most notably between biological categories (<em>Animal</em> and <em>Plant</em> at a highly correlated 0.65) and biographical/entertainment categories (e.g., <em>Athlete</em> and <em>Artist</em> at 0.41). Crucially for our error analysis, the matrix also exposes subtle but measurable lexical overlaps involving the <em>Company</em> category, which intersects with <em>EducationalInstitution</em> (0.11) and <em>Building</em> (0.06). While these scores are lower than the major thematic clusters, this shared structural vocabulary highlights potential boundary ambiguities among physical and organizational entities.</p>
-
-    <h3>2.4. Dataset Samples</h3>
-    <p>To provide qualitative context for the DBpedia-14 structure, the table below highlights two representative Wikipedia lead paragraphs for each of the 14 ontological classes.</p>
-
-    <table class="samples-table">
-        <thead>
-            <tr>
-                <th>Category</th>
-                <th>Sample Extracts</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>Company</td>
-                <td>
-                    <ul>
-                        <li>"Abbott of Farnham E D Abbott Limited was a British coachbuilding business based in Farnham Surrey trading under that name from 1929. A major part of their output was under sub-contract to motor vehicle manufacturers. Their business closed in 1972."</li>
-                        <li>"Schwan-STABILO is a German maker of pens for writing colouring and cosmetics as well as markers and highlighters for office use. It is the world's largest manufacturer of highlighter pens Stabilo Boss."</li>
-                    </ul>
-                </td>
-            </tr>
-            <tr>
-                <td>Educational<br>Institution</td>
-                <td>
-                    <ul>
-                        <li>"Dubai Gem Private School (DGPS) is a British school located in the Oud Metha area of Dubai United Arab Emirates. Dubai Gem Nursery is located in Jumeirah. Together the institutions enroll almost 1500 students aged 3 to 18."</li>
-                        <li>"Gateford Park Primary School is a community primary school in Worksop Nottinghamshire in England."</li>
-                    </ul>
-                </td>
-            </tr>
-            <tr>
-                <td>Artist</td>
-                <td>
-                    <ul>
-                        <li>"Erin Morgenstern (born July 8 1978) is an American writer and visual artist best known for writing The Night Circus."</li>
-                        <li>"	
-Morton Stevens (January 30 1929 – November 11 1991) was an American film score composer. In 1965 he became director of music for CBS West Coast operations. He is probably best known for composing the theme music for Hawaii Five-O a television series for which he won two Emmy Awards (in 1970 and 1974) and was nominated seven other times for work on television programs including Gunsmoke and Police Woman."</li>
-                    </ul>
-                </td>
-            </tr>
-            <tr>
-                <td>Athlete</td>
-                <td>
-                    <ul>
-                        <li>"Martin Marty McKinnon (born 5 July 1975 in Adelaide) is a former Australian rules footballer who played with Adelaide Geelong and the Brisbane Lions in the Australian Football League (AFL).McKinnon was recruited by Adelaide in the 1992 AFL Draft with their first ever national draft pick. He was the youngest player on Adelaide's list at the time and played for Central District in the SANFL when not appearing with Adelaide."</li>
-                        <li>"Elena Yakovishina (born September 17 1992 in Petropavlovsk-Kamchatsky Russia) is an alpine skier from Russia. She competed for Russia at the 2014 Winter Olympics in the alpine skiing events."</li>
-                    </ul>
-                </td>
-            </tr>
-            <tr>
-                <td>Office Holder</td>
-                <td>
-                    <ul>
-                        <li>"Augustus S. Porter (January 18 1769 – June 10 1849) was an American businessman judge farmer and politician who served as an Assemblyman for the state of New York."</li>
-                        <li>"John Gerald (Jack) Masters (born September 27 1931) is a former Canadian politician. He served as mayor of the city of Thunder Bay Ontario and as a federal Member of Parliament."</li>
-                    </ul>
-                </td>
-            </tr>
-            <tr>
-                <td>Mean Of<br>Transportation</td>
-                <td>
-                    <ul>
-                        <li>"The Wedell-Williams XP-34 was a fighter aircraft design submitted to the United States Army Air Corps (USAAC) before World War II by Marguerite Clark Williams widow of millionaire Harry P. Williams former owner and co-founder of the Wedell-Williams Air Service Corporation."</li>
-                        <li>"USS Springfield (CL-66/CLG-7/CG-7) was one of 27 Cleveland-class light cruisers built for the United States Navy during World War II. She was the third US Navy ship to be named after Springfield Illinois. Commissioned in 1944 she served briefly in the Atlantic before transferring to the Pacific. There she served with fast carrier task forces primarily in an anti-aircraft role but also in a shore bombardment role in the last stages of the Pacific War."</li>
-                    </ul>
-                </td>
-            </tr>
-            <tr>
-                <td>Building</td>
-                <td>
-                    <ul>
-                        <li>"Barber-Mulligan Farm is a historic farm located at Avon in Livingston County New York. The nearly 640-acre (260 ha) farm includes a number of original buildings as well as many improvements. The most important cluster is the central farm complex which includes the main house a carriage house horse barn and corn crib all built in 1852 by Aaron Barber. The house is an example of late Greek Revival architecture. Not far from the main house is a cobblestone tenant house built c."</li>
-                        <li>"Danat Al Emarat hospital is a future hospital for women and children in Abu Dhabi United Arab Emirates. With a completion date of 2011 it will have 170 beds upon opening with a maximum capacity of 260 beds. The projected cost for the hospital is $250 million. If completed the hospital would be the first in the United Arab Emirates to be controlled by an international company United Eastern Medical Services (UEM)."</li>
-                    </ul>
-                </td>
-            </tr>
-            <tr>
-                <td>Natural Place</td>
-                <td>
-                    <ul>
-                        <li>"The Duruitoarea River is a tributary of the Camenca River in Romania."</li>
-                        <li>"Mount Jackson is a mountain located in Coos County New Hampshire. The mountain is named after Charles Thomas Jackson New Hampshire's state geologist in the 19th century and is part of the Presidential Range of the White Mountains. Mount."</li>
-                    </ul>
-                </td>
-            </tr>
-            <tr>
-                <td>Village</td>
-                <td>
-                    <ul>
-                        <li>"Chayly is a village in the Qabala Rayon of Azerbaijan.It is suspected that this village has undergone a name change or no longer exists as no Azerbaijani website mentions it under this name."</li>
-                        <li>"	
-Piskarki [pisˈkarki] is a village in the administrative district of Gmina Jeżewo within Świecie County Kuyavian-Pomeranian Voivodeship in north-central Poland.The village has a population of 135."</li>
-                    </ul>
-                </td>
-            </tr>
-            <tr>
-                <td>Animal</td>
-                <td>
-                    <ul>
-                        <li>"	
-Halaiba is a genus of fly in the family Dolichopodidae."</li>
-                        <li>"Americardia media common name the Atlantic strawberry cockle is a species of saltwater clam a marine bivalve mollusc in the family Cardiidae the cockles. This species can be found along the Atlantic coast of North America from Cape Hatteras to the West Indies."</li>
-                    </ul>
-                </td>
-            </tr>
-            <tr>
-                <td>Plant</td>
-                <td>
-                    <ul>
-                        <li>"Utricularia simulans the fringed bladderwort is a small to medium-sized probably perennial carnivorous plant that belongs to the genus Utricularia. U. simulans is native to tropical Africa and the Americas. It grows as a terrestrial plant in damp sandy soils in open savanna at altitudes from near sea level to 1575 m (5167 ft). U. simulans was originally described and published by Robert Knud Friedrich Pilger in 1914."</li>
-                        <li>"Bur-reed sedge (Carex sparganioides) is a perennial plant belonging to the sedge family (Cyperaceae). Its native range includes most of the Eastern and Central U.S. and it is typically found in hardwood or mixed forests. It typically grows 30–100 centimeters (12–39 in) high and contains teardrop-shaped seed sacs within egg-shaped spikelets.Carex sparganioides is considered endangered in Maine and New Hampshire. Good for soil stabilization on shaded slopes."</li>
-                    </ul>
-                </td>
-            </tr>
-            <tr>
-                <td>Album</td>
-                <td>
-                    <ul>
-                        <li>"La Sept is a 1989 promotional album of music for La Sept written by Michael Nyman and performed by the Michael Nyman Band. It is Nyman's fourteenth release. Gabrielle Lester makes her debut with the band on this album. After a 13-year hiatus (at least from recording) with the band she would replace the departing Alexander Balanescu as concertmaster for The Michael Nyman Band during the recording of Facing Goya and as of 2008 remains in that position."</li>
-                        <li>"Epikindyna Paihnidia (Dangerous games) is the debut album by popular Greek artist Elli Kokkinou. It was released in 1999 by Sony Music Greece. This album is currently out of print."</li>
-                    </ul>
-                </td>
-            </tr>
-            <tr>
-                <td>Film</td>
-                <td>
-                    <ul>
-                        <li>"The Nuisance is a 1933 film starring Lee Tracy as a lawyer Madge Evans as his love interest (with a secret) and Frank Morgan as his accomplice."</li>
-                        <li>"Le mataf (Italian: Tre per una grande rapina) is a 1973 drama film directed by Serge Leroy and starring Michel Constantin."</li>
-                    </ul>
-                </td>
-            </tr>
-            <tr>
-                <td>Written Work</td>
-                <td>
-                    <ul>
-                        <li>"Not to be confused with Kaiketsu ZorroKaiketsu Zorori (かいけつゾロリ Incredible Zorori) is a popular Japanese children's book series created by Yutaka Hara and published by Poplar Publishing. The original books were also made into an OVA animated feature-length film anime and comic. They all have Zorori in the title."</li>
-                        <li>"How to Live (full name How to Live or a life of Montaigne in one question and twenty attempts at an answer) by Sarah Bakewell was published by Chatto & Windus in 2010 and by Other Press on September 20 2011. It is about the life of 16th century nobleman wine grower and essayist Michel Eyquem de Montaigne. In it Bakewell roughly maps out Montaigne's life against the questions he raises along the way drawing the answers to these questions from his Essays."</li>
-                    </ul>
-                </td>
-            </tr>
-        </tbody>
-    </table>
-
-    <h2>3. Dataset, DataLoader, and Augmentation Setup</h2>
-    
-    <h3>3.1. Data Processing and Tokenization Strategy</h3>
-    <p>With the insights from the EDA, specifically the word count distribution, we optimized our sequence lengths. For all models, text sequences were configured to pad or truncate to a strict maximum length of 100 tokens. This ensures we capture the necessary semantic context without incurring unnecessary computational overhead from excessive padding. The data pipelines were customized depending on the model architecture:</p>
-    <ul>
-        <li><strong>Transformer Pipeline:</strong> Tokenization was handled via Hugging Face's <code>AutoTokenizer</code>.</li>
-        <li><strong>RNN Pipeline:</strong> A custom vocabulary was generated dynamically from the training data, allocating specific indices for padding and unknown tokens.</li>
-    </ul>
-
-    <h3>3.2 Embeddings & Augmentation</h3>
-    <p>For the recurrent architectures, pre-trained GloVe embeddings (100-dimensional) were loaded into a continuous embedding matrix. The embedding layer was set to unfreezed. This allowed the pre-trained weights to be fine-tuned during the training process to better capture the specific semantic boundaries of the 14 DBpedia classes.</p>
-
-    <h3>Pipeline Architecture Diagram</h3>
-    <p>Below is the structural flow of the data from raw text to the final classification decision across both model methodologies.</p>
-    
-    <div class="diagram-container">
-        <div class="mermaid">
-        flowchart LR
-            Input[<b>Input</b>] 
-            --> Preprocessing[<b>Preprocessing</b>] 
-            --> Backbone[<b>Backbone</b>] 
-            --> Classification[<b>Classification</b>] 
-            --> Output[<b>Output</b>] 
-
-            classDef stage fill:#fdfefe,stroke:#3498db,stroke-width:2px,color:#2c3e50;
-            classDef out fill:#e8f8f5,stroke:#27ae60,stroke-width:2px,color:#2c3e50;
-            
-            class Input,Preprocessing,Backbone,Classification stage;
-            class Output out;
+          <h4 style="margin-bottom: 0px">Full Ontology List (14 Classes):</h4>
+          <p style="margin-top: 0px">
+            Company, EducationalInstitution, Artist, Athlete, OfficeHolder, MeanOfTransportation, Building, NaturalPlace, Village, Animal, Plant, Album, Film, WrittenWork.
+          </p>
         </div>
-    </div>
+      </section>
 
-    <h2>4. Model Building, Training, Evaluation, and Comparison</h2>
+      <section id="eda-details">
+        <h2 class="section-title">2. Exploratory Data Analysis (EDA)</h2>
+
+        <p class="intro-text">
+          To understand the complexity of DBpedia-14, we conducted a comprehensive lexical and structural analysis, assessing label distribution, sequence complexity, and class separability boundaries.
+        </p>
+
+        <div class="content-box analysis-hub">
+          <div class="toggle-list">
+            
+            <div class="toggle-item">
+              <button class="toggle-btn" type="button">
+                <span> EDA Source Code</span>
+                <i class="fas fa-chevron-down"></i>
+              </button>
+              <div class="toggle-content">
+                <div class="code-tools">
+                  <button class="code-tool-btn" type="button" data-action="copy">
+                    <i class="fas fa-copy"></i> Copy
+                  </button>
+                  <a href="public/text/eda.py" download="eda.py" class="code-tool-btn" style="text-decoration: none; display: inline-block">
+                    <i class="fas fa-download"></i> Download
+                  </a>
+                </div>
+                <textarea class="code-editor" readonly>
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import numpy as np
+import re
+from collections import Counter
+from datasets import load_dataset
+from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer, ENGLISH_STOP_WORDS
+from sklearn.metrics.pairwise import cosine_similarity
+import os
+
+sns.set_theme(style="whitegrid")
+STOP_WORDS = set(ENGLISH_STOP_WORDS)
+
+def clean_and_tokenize(text, remove_stopwords=False):
+    """Cleans text and returns a list of words. Optionally removes stopwords."""
+    text = str(text).lower()
+    # Keep only alphabetical characters
+    words = re.findall(r'\b[a-z]{3,}\b', text)
+    if remove_stopwords:
+        words = [w for w in words if w not in STOP_WORDS]
+    return words
+
+def run_full_eda():
+    dir = os.path.dirname(os.path.abspath(__file__))
+        
+    print(f"All graphs will be saved to: {dir}")
+
+    print("\nLoading DBpedia-14 dataset from Hugging Face...")
+    dataset = load_dataset("dbpedia_14", split="train")
+    df = dataset.to_pandas()
+
+    label_mapping = {
+        0: 'Company', 1: 'EducationalInstitution', 2: 'Artist', 3: 'Athlete',
+        4: 'OfficeHolder', 5: 'MeanOfTransportation', 6: 'Building', 
+        7: 'NaturalPlace', 8: 'Village', 9: 'Animal', 10: 'Plant', 
+        11: 'Album', 12: 'Film', 13: 'WrittenWork'
+    }
+    df['category'] = df['label'].map(label_mapping)
+    df['text'] = df['title'] + " " + df['content']
+
+    print(f"Data loaded. Total records: {len(df):,}")
+
+    # 1. CLASS DISTRIBUTION PLOT
+    print("\nGenerating Class Distribution Plot...")
+    plt.figure(figsize=(12, 6))
+    category_order = sorted(df['category'].unique())
+    sns.countplot(data=df, y='category', order=category_order, palette="mako")
+    plt.title('DBpedia-14: Class Distribution')
+    plt.xlabel('Number of Training Samples')
+    plt.ylabel('Category')
+    plt.savefig(os.path.join(dir, '1_Class_Distribution.png'), bbox_inches='tight')
+    plt.close()
+
+    # 2. WORD COUNT DISTRIBUTION
+    print("Generating Word Count Distribution...")
+    df['word_count'] = df['text'].str.split().str.len()
     
-    <h3>4.1 Model Architectures</h3>
-    <p>Two distinct categories of neural network architectures were implemented and evaluated to establish a comprehensive baseline:</p>
-    <ul>
-        <li><strong>Recurrent Neural Networks (RNNs):</strong>
-            <ul>
-                <li><strong>BiLSTM:</strong> A Bidirectional Long Short-Term Memory network utilizing a 100-dimensional embedding layer, followed by an LSTM layer. The final hidden states from both directions are concatenated before passing into the fully connected classification head.</li>
-                <li><strong>BiGRU:</strong> A Bidirectional Gated Recurrent Unit, utilizing the same dimensionality and concatenation strategy to evaluate whether the simplified gate structure provides efficiency gains over the LSTM.</li>
-            </ul>
-        </li>
-        <li><strong>Transformers:</strong> Utilized via Hugging Face's API, relying on DistilBERT and RoBERTa backbones adapted for 14-class sequence classification.</li>
-    </ul>
+    plt.figure(figsize=(10, 6))
+    sns.histplot(data=df, x='word_count', bins=50, color='#667eea', 
+                 binrange=(0, df['word_count'].quantile(0.99)))
+    plt.title('Word Count Distribution')
+    plt.xlabel('Number of Words')
+    plt.ylabel('Frequency')
+    plt.savefig(os.path.join(dir, '2_Word_Count_Distribution.png'), bbox_inches='tight')
+    plt.close()
 
-    <h3>4.2 Training Configuration</h3>
-    <p>The optimizer used was AdamW, with learning rates explicitly tuned to the architecture type: 1e-3 for the recurrent neural networks (BiLSTM and BiGRU) and 2e-5 for the fine-tuning of the Transformer models (DistilBERT and RoBERTa). The loss function was <code>CrossEntropyLoss</code>.</p>
+    # 3. TOKENIZE AND CLEAN TEXT
+    print("Tokenizing and cleaning ALL text...")
+    df['clean_tokens'] = df['text'].apply(lambda x: clean_and_tokenize(x, remove_stopwords=True))
+    df['clean_text'] = df['clean_tokens'].apply(lambda x: " ".join(x))
+    all_categories = sorted(df['category'].unique())
 
-    <h2>5. Experimental Results Report: Tables, Figures, Analysis, and Discussion</h2>
-    <p>Table 1 below displays the comprehensive performance and efficiency metrics for all evaluated backbones.</p>
-
-    <h3>Table 1: Backbone Comparison Metrics</h3>
-    <table>
-        <thead>
-            <tr>
-                <th>Model</th>
-                <th>Accuracy</th>
-                <th>Macro F1</th>
-                <th>Inference Time (s)</th>
-                <th>Inf. Memory (MB)</th>
-                <th>Learnable Params</th>
-                <th>Train Time (s)</th>
-                <th>Train Mem (MB)</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>DistilBERT</td>
-                <td>98.71%</td>
-                <td>0.9871</td>
-                <td>14.28</td>
-                <td>474.66</td>
-                <td>66,964,238</td>
-                <td>399.12</td>
-                <td>1808.61</td>
-            </tr>
-            <tr>
-                <td>RoBERTa</td>
-                <td>98.54%</td>
-                <td>0.9854</td>
-                <td>13.81</td>
-                <td>533.50</td>
-                <td>82,129,166</td>
-                <td>459.11</td>
-                <td>1997.23</td>
-            </tr>
-            <tr>
-                <td>BiLSTM</td>
-                <td>97.04%</td>
-                <td>0.9704</td>
-                <td>1.11</td>
-                <td>172.23</td>
-                <td>9,875,418</td>
-                <td>57.07</td>
-                <td>225.59</td>
-            </tr>
-            <tr>
-                <td>BiGRU</td>
-                <td>97.30%</td>
-                <td>0.9729</td>
-                <td>0.99</td>
-                <td>189.97</td>
-                <td>9,816,538</td>
-                <td>47.25</td>
-                <td>293.74</td>
-            </tr>
-        </tbody>
-    </table>
-
-    <h3>Confusion Matrices</h3>
+    # 4. VOCABULARY RICHNESS
+    print("Generating Vocabulary Richness...")
+    vocab_stats = []
+    for cat in all_categories:
+        cat_tokens = [w for tokens in df[df['category'] == cat]['clean_tokens'] for w in tokens]
+        vocab_stats.append({'Category': cat, 'Unique Words': len(set(cat_tokens))})
     
-    <img src="public/distilbert_confusion_matrix.png" alt="DistilBERT Confusion Matrix">
-    <div class="caption">Figure 1: Confusion Matrix for DistilBERT</div>
+    df_vocab = pd.DataFrame(vocab_stats).sort_values(by='Unique Words', ascending=False)
+    
+    plt.figure(figsize=(12, 6))
+    sns.barplot(data=df_vocab, x='Category', y='Unique Words', palette="Blues_r")
+    plt.title('Vocabulary Richness: Unique Words per Category')
+    plt.xticks(rotation=45, ha='right')
+    plt.ylabel('Unique Word Count')
+    plt.savefig(os.path.join(dir, '3_Vocabulary_Richness.png'), bbox_inches='tight')
+    plt.close()
 
-    <img src="public/roberta_confusion_matrix.png" alt="RoBERTa Confusion Matrix">
-    <div class="caption">Figure 2: Confusion Matrix for RoBERTa</div>
+    # 5. TF-IDF & SIMILARITY
+    print("Building TF-IDF Matrix...")
+    vectorizer = TfidfVectorizer(max_features=5000)
+    tfidf_matrix = vectorizer.fit_transform(df['clean_text'])
+    feature_names = np.array(vectorizer.get_feature_names_out())
 
-    <img src="public/bilstm_confusion_matrix.png" alt="BiLSTM Confusion Matrix">
-    <div class="caption">Figure 3: Confusion Matrix for BiLSTM</div>
+    # --- 5A. Category Similarity Matrix (Heatmap) ---
+    print("Generating Category Similarity Matrix...")
+    cat_mean_vectors = []
+    for cat in all_categories:
+        cat_indices = df.index[df['category'] == cat].tolist()
+        mean_vec = np.asarray(tfidf_matrix[cat_indices].mean(axis=0)).flatten()
+        cat_mean_vectors.append(mean_vec)
+        
+    similarity_matrix = cosine_similarity(cat_mean_vectors)
+    
+    plt.figure(figsize=(12, 10)) 
+    sns.heatmap(similarity_matrix, xticklabels=all_categories, yticklabels=all_categories, 
+                cmap="YlGnBu", annot=True, fmt=".2f", square=True, 
+                cbar_kws={'label': 'Cosine Similarity Score'})
+    plt.title('Category Similarity Matrix (Cosine Similarity of TF-IDF)', pad=20, fontsize=14)
+    plt.tight_layout()
+    plt.savefig(os.path.join(dir, '4_Category_Similarity_Matrix.png'), bbox_inches='tight')
+    plt.close()
 
-    <img src="public/bigru_confusion_matrix.png" alt="BiGRU Confusion Matrix">
-    <div class="caption">Figure 4: Confusion Matrix for BiGRU</div>
+    print("\n EDA Done")
 
-    <h3>Analysis & Discussion</h3>
-    <p>The experimental results showcase a classic trade-off between absolute predictive power and computational efficiency:</p>
-    <ul>
-        <li><strong>Performance Peak:</strong> DistilBERT achieved the highest overall performance, yielding an accuracy of 98.71% and a macro F1 score of 0.9871. It slightly outperformed RoBERTa (98.54% accuracy) while requiring fewer learnable parameters (roughly 66.9 million compared to RoBERTa's 82.1 million) and less training memory (1808.61 MB vs 1997.23 MB).</li>
-        <li><strong>Efficiency Peak:</strong> The RNN models represent highly efficient baselines. The BiGRU achieved a highly respectable 97.30% accuracy while utilizing only 9.8 million parameters.</li>
-        <li><strong>Matrix Analysis:</strong> A review of the generated confusion matrices (Figures 1-4) indicates that while all models perform exceptionally well, the RNN models exhibit slightly more false positives between similar classes (e.g., Plant vs. Animal), likely due to the lack of deep contextual self-attention found in transformers.</li>
-    </ul>
+if __name__ == "__main__":
+    run_full_eda()
+                </textarea>
+              </div>
+            </div>
 
-    <h2>6. Model Efficiency Analysis</h2>
-    <p>The metrics collected reveal stark efficiency disparities that heavily influence deployment viability.</p>
-    <ul>
-        <li><strong>Training Footprint:</strong> The BiGRU trained in just 47.25 seconds, utilizing only 293.74 MB of VRAM. The BiLSTM was similarly lightweight, using only 225.59 MB of training memory. Conversely, RoBERTa took nearly 10 times as long to train (459.11 seconds) and consumed almost 2 GB of VRAM.</li>
-        <li><strong>Inference Bottlenecks:</strong> For real-world applications, inference latency is critical. The BiGRU processed the evaluation batches in just 0.99 seconds, whereas DistilBERT took 14.28 seconds. For systems where a ~97% accuracy threshold is acceptable, deploying an RNN over a Transformer yields a >14x speedup in user-facing latency.</li>
-    </ul>
+            <div class="toggle-item is-open">
+              <button class="toggle-btn" type="button">
+                <span>Class Distribution & Text Complexity</span>
+                <i class="fas fa-chevron-down"></i>
+              </button>
+              <div class="toggle-content">
+                <div class="tutorial-box">
+                  <h4>
+                    <span><i class="fas fa-chart-bar"></i> Distribution & Length Analysis</span>
+                    <i class="fas fa-chevron-down tutorial-toggle-icon"></i>
+                  </h4>
+                  <p><strong>Observation 1 - Uniformity:</strong> The DBpedia-14 dataset is perfectly uniform. This establishes a highly stable baseline for comparing different neural network architectures without needing class weights.</p>
+                  <p><strong>Observation 2 - Optimal Sequence Length:</strong> The Word Count Distribution demonstrates that the vast majority of introductory paragraphs heavily concentrate between 10 and 80 words. This insight allows us to set an efficient `max_length=100` that captures complete semantic context without incurring unnecessary padding and computational overhead.</p>
+                </div>
+                
+                <div class="grid-two-col">
+                  <div class="image-container">
+                    <img src="public/1_Class_Distribution.png" alt="Class Distribution Plot" />
+                    <p class="caption">Figure 1: Uniform Class Distribution.</p>
+                  </div>
+                  <div class="image-container">
+                    <img src="public/2_Word_Count_Distribution.png" alt="Word Count Distribution Plot" />
+                    <p class="caption">Figure 2: Text Word Count Distribution.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
 
-    <h2>7. Error Analysis (Hard Examples)</h2>
-    <p>An analysis of misclassified "hard examples" reveals distinct behavioral differences between how transformers and RNNs parse complex contextual text.</p>
+            <div class="toggle-item is-open">
+              <button class="toggle-btn" type="button">
+                <span>Lexical Analysis & Class Separability</span>
+                <i class="fas fa-chevron-down"></i>
+              </button>
+              <div class="toggle-content">
+                <p>To understand the linguistic features our models will learn, we conducted a lexical analysis of the dataset focusing on vocabulary diversity, distinctive terms, and meaningful phrase boundaries.</p>
+                
+                <div class="image-container">
+                  <img src="public/3_Vocabulary_Richness.png" alt="Vocabulary Richness Plot">
+                  <p class="caption">Figure 3: Vocabulary Richness across classes.</p>
+                </div>
+                
+                <div class="observation-box">
+                  <p><strong>Lexical Boundaries:</strong> The Category Similarity Matrix mapping (via cosine similarity of TF-IDF vectors) reveals that the most prominent linguistic overlaps occur within clearly related topical domains, most notably between biological categories (Animal and Plant at 0.65 correlation) and biographical/entertainment categories (Athlete and Artist at 0.41).</p>
+                </div>
 
-    <div class="case-study">
-        <h3>Example Case 1: Complex Entanglement</h3>
-        <blockquote>"Mamunur Rashid (Bengali: মামুনুর রশীদ; born 29 February 1948) is one of the pioneering theatre activists in Bangladesh. He is the chief secretary of leading theatre group Aranyak (theatre group) which plays crucial roles in creating common people aware about their rights through his plays. He was born on 29 February in 1948 in the village Paikora under Kalhati upazila in Tangail. One of the most popular production of his group is Rarang which deals with the life of Santal."</blockquote>
-        <p><strong>Actual Label:</strong> Artist</p>
-        <p><strong>Model Predictions:</strong></p>
-        <ul>
-            <li><strong>DistilBERT:</strong> Artist (Correct)</li>
-            <li><strong>RoBERTa:</strong> Artist (Correct)</li>
-            <li><strong>BiLSTM:</strong> Athlete (Incorrect)</li>
-            <li><strong>BiGRU:</strong> OfficeHolder (Incorrect)</li>
-        </ul>
-        <p><strong>Discussion:</strong> The text contains overlapping contextual clues. Transformers correctly synthesized "theatre" and "plays" across the full sequence to deduce <em>Artist</em>. The RNNs frequently failed here, likely over-indexing on localized structural words that triggered <em>Athlete</em> or <em>Office Holder</em> associations in their embedding spaces.</p>
+                <div class="image-container">
+                  <img src="public/4_Category_Similarity_Matrix.png" alt="Category Similarity Matrix">
+                  <p class="caption">Figure 4: Category Similarity Matrix.</p>
+                </div>
+                
+                <div class="image-container">
+                  <img src="public/6_Bigrams.png" alt="Top 5 Bigrams Plot">
+                  <p class="caption">Figure 5: Top 5 Bigrams per category.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="toggle-item">
+              <button class="toggle-btn" type="button">
+                <span>Dataset Samples</span>
+                <i class="fas fa-chevron-down"></i>
+              </button>
+              <div class="toggle-content">
+                <table class="results-table">
+                  <thead>
+                      <tr>
+                          <th>Category</th>
+                          <th>Sample Extracts</th>
+                      </tr>
+                  </thead>
+                  <tbody>
+                      <tr>
+                          <td><span class="badge badge-tech">Company</span></td>
+                          <td>
+                              <ul style="margin:0; padding-left:20px;">
+                                  <li>"Abbott of Farnham E D Abbott Limited was a British coachbuilding business based in Farnham Surrey trading under that name from 1929. A major part of their output was under sub-contract to motor vehicle manufacturers. Their business closed in 1972."</li>
+                                  <li>"Schwan-STABILO is a German maker of pens for writing colouring and cosmetics as well as markers and highlighters for office use. It is the world's largest manufacturer of highlighter pens Stabilo Boss."</li>
+                              </ul>
+                          </td>
+                      </tr>
+                      <tr>
+                          <td><span class="badge badge-tech">Educational Institution</span></td>
+                          <td>
+                              <ul style="margin:0; padding-left:20px;">
+                                  <li>"Dubai Gem Private School (DGPS) is a British school located in the Oud Metha area of Dubai United Arab Emirates. Dubai Gem Nursery is located in Jumeirah. Together the institutions enroll almost 1500 students aged 3 to 18."</li>
+                                  <li>"Gateford Park Primary School is a community primary school in Worksop Nottinghamshire in England."</li>
+                              </ul>
+                          </td>
+                      </tr>
+                      <tr>
+                          <td><span class="badge badge-tech">Artist</span></td>
+                          <td>
+                              <ul style="margin:0; padding-left:20px;">
+                                  <li>"Erin Morgenstern (born July 8 1978) is an American writer and visual artist best known for writing The Night Circus."</li>
+                                  <li>"Morton Stevens (January 30 1929 – November 11 1991) was an American film score composer. In 1965 he became director of music for CBS West Coast operations. He is probably best known for composing the theme music for Hawaii Five-O a television series for which he won two Emmy Awards..."</li>
+                              </ul>
+                          </td>
+                      </tr>
+                      <tr>
+                          <td><span class="badge badge-tech">Athlete</span></td>
+                          <td>
+                              <ul style="margin:0; padding-left:20px;">
+                                  <li>"Martin Marty McKinnon (born 5 July 1975 in Adelaide) is a former Australian rules footballer who played with Adelaide Geelong and the Brisbane Lions in the Australian Football League (AFL)."</li>
+                                  <li>"Elena Yakovishina (born September 17 1992 in Petropavlovsk-Kamchatsky Russia) is an alpine skier from Russia. She competed for Russia at the 2014 Winter Olympics in the alpine skiing events."</li>
+                              </ul>
+                          </td>
+                      </tr>
+                      <tr>
+                          <td><span class="badge badge-tech">Office Holder</span></td>
+                          <td>
+                              <ul style="margin:0; padding-left:20px;">
+                                  <li>"Augustus S. Porter (January 18 1769 – June 10 1849) was an American businessman judge farmer and politician who served as an Assemblyman for the state of New York."</li>
+                                  <li>"John Gerald (Jack) Masters (born September 27 1931) is a former Canadian politician. He served as mayor of the city of Thunder Bay Ontario and as a federal Member of Parliament."</li>
+                              </ul>
+                          </td>
+                      </tr>
+                      <tr>
+                          <td><span class="badge badge-tech">Mean Of Transportation</span></td>
+                          <td>
+                              <ul style="margin:0; padding-left:20px;">
+                                  <li>"The Wedell-Williams XP-34 was a fighter aircraft design submitted to the United States Army Air Corps (USAAC) before World War II by Marguerite Clark Williams widow of millionaire Harry P. Williams former owner and co-founder of the Wedell-Williams Air Service Corporation."</li>
+                                  <li>"USS Springfield (CL-66/CLG-7/CG-7) was one of 27 Cleveland-class light cruisers built for the United States Navy during World War II. She was the third US Navy ship to be named after Springfield Illinois."</li>
+                              </ul>
+                          </td>
+                      </tr>
+                      <tr>
+                          <td><span class="badge badge-tech">Building</span></td>
+                          <td>
+                              <ul style="margin:0; padding-left:20px;">
+                                  <li>"Barber-Mulligan Farm is a historic farm located at Avon in Livingston County New York. The nearly 640-acre (260 ha) farm includes a number of original buildings as well as many improvements."</li>
+                                  <li>"Danat Al Emarat hospital is a future hospital for women and children in Abu Dhabi United Arab Emirates. With a completion date of 2011 it will have 170 beds upon opening with a maximum capacity of 260 beds."</li>
+                              </ul>
+                          </td>
+                      </tr>
+                      <tr>
+                          <td><span class="badge badge-tech">Natural Place</span></td>
+                          <td>
+                              <ul style="margin:0; padding-left:20px;">
+                                  <li>"The Duruitoarea River is a tributary of the Camenca River in Romania."</li>
+                                  <li>"Mount Jackson is a mountain located in Coos County New Hampshire. The mountain is named after Charles Thomas Jackson New Hampshire's state geologist in the 19th century and is part of the Presidential Range of the White Mountains."</li>
+                              </ul>
+                          </td>
+                      </tr>
+                      <tr>
+                          <td><span class="badge badge-tech">Village</span></td>
+                          <td>
+                              <ul style="margin:0; padding-left:20px;">
+                                  <li>"Chayly is a village in the Qabala Rayon of Azerbaijan. It is suspected that this village has undergone a name change or no longer exists as no Azerbaijani website mentions it under this name."</li>
+                                  <li>"Piskarki [pisˈkarki] is a village in the administrative district of Gmina Jeżewo within Świecie County Kuyavian-Pomeranian Voivodeship in north-central Poland. The village has a population of 135."</li>
+                              </ul>
+                          </td>
+                      </tr>
+                      <tr>
+                          <td><span class="badge badge-tech">Animal</span></td>
+                          <td>
+                              <ul style="margin:0; padding-left:20px;">
+                                  <li>"Halaiba is a genus of fly in the family Dolichopodidae."</li>
+                                  <li>"Americardia media common name the Atlantic strawberry cockle is a species of saltwater clam a marine bivalve mollusc in the family Cardiidae the cockles. This species can be found along the Atlantic coast of North America from Cape Hatteras to the West Indies."</li>
+                              </ul>
+                          </td>
+                      </tr>
+                      <tr>
+                          <td><span class="badge badge-tech">Plant</span></td>
+                          <td>
+                              <ul style="margin:0; padding-left:20px;">
+                                  <li>"Utricularia simulans the fringed bladderwort is a small to medium-sized probably perennial carnivorous plant that belongs to the genus Utricularia. U. simulans is native to tropical Africa and the Americas."</li>
+                                  <li>"Bur-reed sedge (Carex sparganioides) is a perennial plant belonging to the sedge family (Cyperaceae). Its native range includes most of the Eastern and Central U.S. and it is typically found in hardwood or mixed forests."</li>
+                              </ul>
+                          </td>
+                      </tr>
+                      <tr>
+                          <td><span class="badge badge-tech">Album</span></td>
+                          <td>
+                              <ul style="margin:0; padding-left:20px;">
+                                  <li>"La Sept is a 1989 promotional album of music for La Sept written by Michael Nyman and performed by the Michael Nyman Band. It is Nyman's fourteenth release."</li>
+                                  <li>"Epikindyna Paihnidia (Dangerous games) is the debut album by popular Greek artist Elli Kokkinou. It was released in 1999 by Sony Music Greece. This album is currently out of print."</li>
+                              </ul>
+                          </td>
+                      </tr>
+                      <tr>
+                          <td><span class="badge badge-tech">Film</span></td>
+                          <td>
+                              <ul style="margin:0; padding-left:20px;">
+                                  <li>"The Nuisance is a 1933 film starring Lee Tracy as a lawyer Madge Evans as his love interest (with a secret) and Frank Morgan as his accomplice."</li>
+                                  <li>"Le mataf (Italian: Tre per una grande rapina) is a 1973 drama film directed by Serge Leroy and starring Michel Constantin."</li>
+                              </ul>
+                          </td>
+                      </tr>
+                      <tr>
+                          <td><span class="badge badge-tech">Written Work</span></td>
+                          <td>
+                              <ul style="margin:0; padding-left:20px;">
+                                  <li>"Not to be confused with Kaiketsu Zorro. Kaiketsu Zorori (かいけつゾロリ Incredible Zorori) is a popular Japanese children's book series created by Yutaka Hara and published by Poplar Publishing. The original books were also made into an OVA animated feature-length film anime and comic."</li>
+                                  <li>"How to Live (full name How to Live or a life of Montaigne in one question and twenty attempts at an answer) by Sarah Bakewell was published by Chatto & Windus in 2010 and by Other Press on September 20 2011. It is about the life of 16th century nobleman wine grower and essayist Michel Eyquem de Montaigne."</li>
+                              </ul>
+                          </td>
+                      </tr>
+                  </tbody>
+              </table>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <section id="system-overview">
+        <h2 class="section-title">3. Model Pipelines & Training Architecture</h2>
+        <p class="intro-text">
+          Two distinct categories of neural network architectures were implemented to establish a comprehensive baseline: Recurrent Neural Networks (BiLSTM/BiGRU) utilizing GloVe embeddings, and fine-tuned Transformer models (DistilBERT/RoBERTa). 
+        </p>
+
+        <div class="content-box analysis-hub">
+          <div class="toggle-list">
+            
+            <div class="toggle-item">
+              <button class="toggle-btn" type="button">
+                <span><i class="fas fa-inbox"></i> Input & DataLoader</span>
+                <i class="fas fa-chevron-down"></i>
+              </button>
+              <div class="toggle-content">
+                <p>Sequence texts are parsed and truncated/padded to exactly <code>max_length=100</code> tokens to ensure fast batches without compromising semantic meaning.</p>
+                <div class="code-demo-block">
+                  <textarea class="code-editor" readonly style="min-height: 150px;">
+# Hugging Face Dataset Setup
+from datasets import load_dataset
+raw_dataset = load_dataset("dbpedia_14")
+
+train_data = raw_dataset['train'].train_test_split(train_size=28000, stratify_by_column="label")['train']
+test_data = raw_dataset['test'].train_test_split(train_size=7000, stratify_by_column="label")['train']
+                  </textarea>
+                </div>
+              </div>
+            </div>
+
+            <div class="toggle-item">
+              <button class="toggle-btn" type="button">
+                <span><i class="fas fa-font"></i> GloVe Embeddings (For RNNs)</span>
+                <i class="fas fa-chevron-down"></i>
+              </button>
+              <div class="toggle-content">
+                <p>For recurrent networks, a 100-dimensional GloVe continuous embedding matrix is instantiated. It maps vocabulary tokens to dense vectors before sequence ingestion.</p>
+                <div class="code-demo-block">
+                  <div class="code-tools">
+                    <button class="code-tool-btn" type="button" data-action="copy"><i class="fas fa-copy"></i> Copy</button>
+                    <a href="public/text/glove.py" download="glove.py" class="code-tool-btn" style="text-decoration: none; display: inline-block"><i class="fas fa-download"></i> Download</a>
+                  </div>
+                  <textarea class="code-editor" readonly style="min-height: 250px">
+import os
+import urllib.request
+import zipfile
+import numpy as np
+import torch
+
+def get_glove_embeddings(dim=100):
+    glove_dir = "glove_data"
+    zip_path = f"{glove_dir}/glove.6B.zip"
+    txt_path = f"{glove_dir}/glove.6B.{dim}d.txt"
+    
+    if not os.path.exists(txt_path):
+        os.makedirs(glove_dir, exist_ok=True)
+        url = "https://huggingface.co/stanfordnlp/glove/resolve/main/glove.6B.zip"
+        urllib.request.urlretrieve(url, zip_path)
+        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+            zip_ref.extractall(glove_dir)
+            
+    embeddings_dict = {}
+    with open(txt_path, 'r', encoding='utf-8') as f:
+        for line in f:
+            values = line.split()
+            word = values[0]
+            vector = np.asarray(values[1:], "float32")
+            embeddings_dict[word] = vector
+    return embeddings_dict
+
+def create_embedding_matrix(vocab, glove_dict, dim=100):
+    embedding_matrix = torch.zeros((len(vocab), dim))
+    for word, idx in vocab.items():
+        if word in glove_dict:
+            embedding_matrix[idx] = torch.tensor(glove_dict[word])
+        else:
+            embedding_matrix[idx] = torch.randn(dim)
+    return embedding_matrix
+                  </textarea>
+                </div>
+              </div>
+            </div>
+
+            <div class="toggle-item is-open">
+              <button class="toggle-btn" type="button">
+                <span><i class="fas fa-robot"></i> Transformer Architecture Setup</span>
+                <i class="fas fa-chevron-down"></i>
+              </button>
+              <div class="toggle-content">
+                <p>Utilizing Hugging Face's <code>AutoModelForSequenceClassification</code>.</p>
+                <div class="code-demo-block">
+                  <div class="code-tools">
+                    <button class="code-tool-btn" type="button" data-action="copy"><i class="fas fa-copy"></i> Copy</button>
+                    <a href="public/text/transformer.py" download="transformer.py" class="code-tool-btn" style="text-decoration: none; display: inline-block"><i class="fas fa-download"></i> Download</a>
+                  </div>
+                  <textarea class="code-editor" readonly style="min-height: 250px">
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
+from torch.utils.data import DataLoader
+
+def get_transformer_components(model_id, num_labels=14):
+    print(f"Loading {model_id} components...")
+    tokenizer = AutoTokenizer.from_pretrained(model_id)
+    model = AutoModelForSequenceClassification.from_pretrained(model_id, num_labels=num_labels)
+    return tokenizer, model
+
+def prepare_transformer_data(dataset, tokenizer, batch_size=32, shuffle=True):
+    def tokenize(batch):
+        return tokenizer(
+            batch['content'], 
+            padding='max_length', 
+            truncation=True, 
+            max_length=100
+        )
+    
+    print("Tokenizing data for Transformer...")
+    encodings = dataset.map(tokenize, batched=True)
+    encodings.set_format(type='torch', columns=['input_ids', 'attention_mask', 'label'])
+    
+    loader = DataLoader(encodings, batch_size=batch_size, shuffle=shuffle)
+    return loader
+                  </textarea>
+                </div>
+              </div>
+            </div>
+
+            <div class="toggle-item is-open">
+              <button class="toggle-btn" type="button">
+                <span><i class="fas fa-network-wired"></i> RNN Architecture Setup</span>
+                <i class="fas fa-chevron-down"></i>
+              </button>
+              <div class="toggle-content">
+                <p>BiLSTM and BiGRU implementations using PyTorch, customized for the 14-class sequence task.</p>
+                <div class="code-demo-block">
+                  <div class="code-tools">
+                    <button class="code-tool-btn" type="button" data-action="copy"><i class="fas fa-copy"></i> Copy</button>
+                    <a href="public/text/rnn.py" download="rnn.py" class="code-tool-btn" style="text-decoration: none; display: inline-block"><i class="fas fa-download"></i> Download</a>
+                  </div>
+                  <textarea class="code-editor" readonly style="min-height: 300px">
+import torch
+import torch.nn as nn
+from torch.utils.data import DataLoader
+from torch.nn.utils.rnn import pad_sequence
+import re
+from glove import get_glove_embeddings, create_embedding_matrix
+
+SEQ_LEN = 100
+
+class BaseRNN(nn.Module):
+    def __init__(self, embed_dim, hidden_dim, num_classes, embedding_matrix):
+        super(BaseRNN, self).__init__()
+        self.embedding = nn.Embedding.from_pretrained(embedding_matrix, freeze=False)
+        self.fc = nn.Linear(hidden_dim * 2, num_classes)
+
+class BiLSTM(BaseRNN):
+    def __init__(self, embed_dim, hidden_dim, num_classes, embedding_matrix):
+        super().__init__(embed_dim, hidden_dim, num_classes, embedding_matrix)
+        self.rnn = nn.LSTM(embed_dim, hidden_dim, batch_first=True, bidirectional=True)
+        
+    def forward(self, x):
+        embedded = self.embedding(x)
+        _, (hidden, _) = self.rnn(embedded)
+        final_hidden = torch.cat((hidden[-2,:,:], hidden[-1,:,:]), dim=1)
+        return self.fc(final_hidden)
+
+class BiGRU(BaseRNN):
+    def __init__(self, embed_dim, hidden_dim, num_classes, embedding_matrix):
+        super().__init__(embed_dim, hidden_dim, num_classes, embedding_matrix)
+        self.rnn = nn.GRU(embed_dim, hidden_dim, batch_first=True, bidirectional=True)
+        
+    def forward(self, x):
+        embedded = self.embedding(x)
+        _, hidden = self.rnn(embedded)
+        final_hidden = torch.cat((hidden[-2,:,:], hidden[-1,:,:]), dim=1)
+        return self.fc(final_hidden)
+                  </textarea>
+                </div>
+              </div>
+            </div>
+
+            <div class="toggle-item">
+              <button class="toggle-btn" type="button">
+                <span><i class="fas fa-play"></i> Training Execution</span>
+                <i class="fas fa-chevron-down"></i>
+              </button>
+              <div class="toggle-content">
+                <p>AdamW optimizer is used with distinct learning rates: <code>1e-3</code> for recurrent networks and <code>2e-5</code> for fine-tuning transformers.</p>
+                <div class="code-demo-block">
+                  <div class="code-tools">
+                    <button class="code-tool-btn" type="button" data-action="copy"><i class="fas fa-copy"></i> Copy</button>
+                    <a href="public/text/train.py" download="train.py" class="code-tool-btn" style="text-decoration: none; display: inline-block"><i class="fas fa-download"></i> Download</a>
+                  </div>
+                  <textarea class="code-editor" readonly style="min-height: 250px">
+import torch
+import os
+import time
+from torch.optim import AdamW
+from torch.nn import CrossEntropyLoss
+from tqdm import tqdm
+
+def train_model(model, train_loader, model_name, is_transformer=True, epochs=2):
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    model = model.to(device)
+    optimizer = AdamW(model.parameters(), lr=2e-5 if is_transformer else 1e-3)
+    loss_fn = CrossEntropyLoss()
+
+    start_time = time.perf_counter()
+
+    for epoch in range(epochs):
+        model.train()
+        progress_bar = tqdm(train_loader, desc="Training")
+        
+        for batch in progress_bar:
+            optimizer.zero_grad()
+            input_ids = batch['input_ids'].to(device)
+            labels = batch['label'].to(device)
+            
+            if is_transformer:
+                attention_mask = batch['attention_mask'].to(device)
+                outputs = model(input_ids, attention_mask=attention_mask)
+                logits = outputs.logits
+            else:
+                logits = model(input_ids)
+                
+            loss = loss_fn(logits, labels)
+            loss.backward()
+            optimizer.step()
+            
+    train_time = time.perf_counter() - start_time
+    max_memory = torch.cuda.max_memory_allocated() / (1024 ** 2) if torch.cuda.is_available() else 0
+    
+    return model, train_time, max_memory
+                  </textarea>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <section id="results">
+        <h2 class="section-title">4. Experimental Results & Discussion</h2>
+        <p class="intro-text">
+          Table 1 showcases the comprehensive performance metrics extracted during the training of the models, displaying predictive power against computational constraints.
+        </p>
+
+        <div class="content-box">
+          <h3>Table 1: Backbone Comparison Metrics</h3>
+          <div style="overflow-x:auto;">
+            <table class="results-table">
+                <thead>
+                    <tr>
+                        <th>Model</th>
+                        <th>Accuracy</th>
+                        <th>Macro F1</th>
+                        <th>Inference Time (s)</th>
+                        <th>Inf. Memory (MB)</th>
+                        <th>Learnable Params</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="highlight-row">
+                        <td>DistilBERT</td>
+                        <td>98.71%</td>
+                        <td>0.9871</td>
+                        <td>14.28</td>
+                        <td>474.66</td>
+                        <td>66,964,238</td>
+                    </tr>
+                    <tr>
+                        <td>RoBERTa</td>
+                        <td>98.54%</td>
+                        <td>0.9854</td>
+                        <td>13.81</td>
+                        <td>533.50</td>
+                        <td>82,129,166</td>
+                    </tr>
+                    <tr>
+                        <td>BiLSTM</td>
+                        <td>97.04%</td>
+                        <td>0.9704</td>
+                        <td>1.11</td>
+                        <td>172.23</td>
+                        <td>9,875,418</td>
+                    </tr>
+                    <tr>
+                        <td>BiGRU</td>
+                        <td>97.30%</td>
+                        <td>0.9729</td>
+                        <td>0.99</td>
+                        <td>189.97</td>
+                        <td>9,816,538</td>
+                    </tr>
+                </tbody>
+            </table>
+          </div>
+
+          <div class="grid-two-col">
+            <div class="observation-box">
+              <h4><i class="fas fa-tachometer-alt"></i> Efficiency vs. Power</h4>
+              <p>DistilBERT achieved the highest absolute performance (98.71%), but the BiGRU represents a highly efficient baseline. It processes inference batches over <strong>14x faster</strong> than the transformer models while maintaining a highly respectable 97.30% accuracy with fewer than 10M parameters.</p>
+            </div>
+            <div class="observation-box">
+              <h4><i class="fas fa-brain"></i> Confusion Analysis</h4>
+              <p>RNNs exhibit slightly more false positives between linguistically similar classes (e.g., Plant vs. Animal), likely due to the lack of deep contextual self-attention across longer dependencies.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="content-box">
+            <h3>Confusion Matrices</h3>
+            <div class="grid-two-col">
+                <div class="image-container" style="margin-top:0;">
+                    <img src="public/distilbert_confusion_matrix.png" alt="DistilBERT Confusion Matrix">
+                    <p class="caption">Figure: DistilBERT Matrix</p>
+                </div>
+                <div class="image-container" style="margin-top:0;">
+                    <img src="public/roberta_confusion_matrix.png" alt="RoBERTa Confusion Matrix">
+                    <p class="caption">Figure: RoBERTa Matrix</p>
+                </div>
+                <div class="image-container" style="margin-top:0;">
+                    <img src="public/bilstm_confusion_matrix.png" alt="BiLSTM Confusion Matrix">
+                    <p class="caption">Figure: BiLSTM Matrix</p>
+                </div>
+                <div class="image-container" style="margin-top:0;">
+                    <img src="public/bigru_confusion_matrix.png" alt="BiGRU Confusion Matrix">
+                    <p class="caption">Figure: BiGRU Matrix</p>
+                </div>
+            </div>
+        </div>
+      </section>
+
+      <section id="error-analysis">
+        <h2 class="section-title">5. Error Analysis (Hard Examples)</h2>
+        <p class="intro-text">
+          An analysis of misclassified "hard examples" reveals distinct behavioral differences between how transformers and recurrent networks parse complex contextual text.
+        </p>
+
+        <div class="case-study">
+          <h4>Case 1: Complex Entanglement</h4>
+          <blockquote>"Mamunur Rashid (Bengali: মামুনুর রশীদ; born 29 February 1948) is one of the pioneering theatre activists in Bangladesh. He is the chief secretary of leading theatre group Aranyak (theatre group) which plays crucial roles in creating common people aware about their rights through his plays..."</blockquote>
+          <p><strong>Actual Label:</strong> <span class="badge badge-success">Artist</span></p>
+          <table class="results-table">
+              <tr>
+                  <td><strong>DistilBERT</strong></td>
+                  <td><span class="badge badge-success">Artist (Correct)</span></td>
+              </tr>
+              <tr>
+                  <td><strong>RoBERTa</strong></td>
+                  <td><span class="badge badge-success">Artist (Correct)</span></td>
+              </tr>
+              <tr>
+                  <td><strong>BiLSTM</strong></td>
+                  <td><span class="badge badge-danger">Athlete (Incorrect)</span></td>
+              </tr>
+              <tr>
+                  <td><strong>BiGRU</strong></td>
+                  <td><span class="badge badge-danger">OfficeHolder (Incorrect)</span></td>
+              </tr>
+          </table>
+          <div class="observation-box">
+              <p><strong>Discussion:</strong> The text contains overlapping contextual clues. Transformers correctly synthesized "theatre" and "plays" across the full sequence. The RNNs frequently failed here, likely over-indexing on localized structural words in their dense embedding space.</p>
+          </div>
+        </div>
+
+        <div class="case-study">
+          <h4>Case 2: Historical Ambiguity</h4>
+          <blockquote>"Atâ-Malek Juvayni (1226–1283)... was a Persian historian who wrote an account of the Mongol Empire... Both his grandfather and his father Baha al-Din had held the post of sahib-divan or Minister of Finance for Muhammad Jalal al-Din and Ögedei Khan respectively."</blockquote>
+          <p><strong>Actual Label:</strong> <span class="badge badge-success">Office Holder</span></p>
+          <table class="results-table">
+              <tr>
+                  <td><strong>DistilBERT</strong></td>
+                  <td><span class="badge badge-success">OfficeHolder</span></td>
+              </tr>
+              <tr>
+                  <td><strong>RoBERTa</strong></td>
+                  <td><span class="badge badge-danger">Artist</span></td>
+              </tr>
+              <tr>
+                  <td><strong>BiLSTM</strong></td>
+                  <td><span class="badge badge-danger">Artist</span></td>
+              </tr>
+              <tr>
+                  <td><strong>BiGRU</strong></td>
+                  <td><span class="badge badge-danger">Artist</span></td>
+              </tr>
+          </table>
+          <div class="observation-box">
+              <p><strong>Discussion:</strong> This text features words related to writing ("historian", "wrote an account"). Only DistilBERT's attention mechanism accurately weighed the concluding sentences regarding "Minister of Finance" to resolve the long-range dependency.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="conclusion">
+        <h2 class="section-title">6. Conclusion</h2>
+        <div class="content-box conclusion-highlight">
+            <h3>Key Findings</h3>
+            <div class="grid-two-col">
+                <div class="observation-box" style="border-left-color: var(--secondary-color)">
+                    <h4><i class="fas fa-trophy"></i> Transformer Superiority</h4>
+                    <p>Attention-based models like DistilBERT provide absolute peak accuracy by dynamically mapping contextual meaning across lengthy text passages, successfully mitigating local keyword bias.</p>
+                </div>
+                <div class="observation-box" style="border-left-color: var(--accent-color)">
+                    <h4><i class="fas fa-bolt"></i> Recurrent Viability</h4>
+                    <p>Despite the dominance of transformers, classic RNNs (especially BiGRU) proved to be highly formidable production candidates where extreme sub-second latency and minimal VRAM requirements outweigh ~1% drops in F1 score.</p>
+                </div>
+            </div>
+        </div>
+      </section>
+
     </div>
 
-    <div class="case-study">
-        <h3>Example Case 2: Historical Ambiguity</h3>
-        <blockquote>"Atâ-Malek Juvayni (1226–1283) (Persian: عطاملک جوینی‎) in full Ala al-Din Ata-ullah (Persian: علاءالدین عطاالله‎) was a Persian historian who wrote an account of the Mongol Empire entitled Tarīkh-i Jahān-gushā (History of the World Conqueror).He was born in Juvayn a city in Khorasan in northeastern Iran. Both his grandfather and his father Baha al-Din had held the post of sahib-divan or Minister of Finance for Muhammad Jalal al-Din and Ögedei Khan respectively."</blockquote>
-        <p><strong>Actual Label:</strong> Office Holder</p>
-        <p><strong>Model Predictions:</strong></p>
-        <ul>
-            <li><strong>DistilBERT:</strong> OfficeHolder (Correct)</li>
-            <li><strong>RoBERTa:</strong> Artist (Incorrect)</li>
-            <li><strong>BiLSTM:</strong> Artist (Incorrect)</li>
-            <li><strong>BiGRU:</strong> Artist (Incorrect)</li>
-        </ul>
-        <p><strong>Discussion:</strong> This text heavily features words related to writing ("historian", "wrote an account"), leading baseline models to guess <em>Artist</em>. Only the attention mechanisms in DistilBERT were able to accurately weigh the concluding sentences regarding "Minister of Finance" and apply that classification to the subject, showcasing superior long-range dependency resolution compared to the RNNs and even its heavier counterpart, RoBERTa.</p>
-    </div>
+    <footer>
+      <p>© 2026 Group LTH - Ho Chi Minh City University of Technology</p>
+      <p>Faculty of Computer Science and Engineering</p>
+    </footer>
 
-</div>
+    <script>
+      const progressBar = document.getElementById("scroll-progress");
 
-</body>
+      const updateProgress = () => {
+        const total =
+          document.documentElement.scrollHeight - window.innerHeight;
+        const progress = total > 0 ? (window.scrollY / total) * 100 : 0;
+        progressBar.style.width = `${Math.min(Math.max(progress, 0), 100)}%`;
+      };
+
+      window.addEventListener("scroll", updateProgress, { passive: true });
+      updateProgress();
+
+      document.querySelectorAll(".toggle-btn").forEach((button) => {
+        button.addEventListener("click", () => {
+          button.parentElement.classList.toggle("is-open");
+        });
+      });
+
+      document.querySelectorAll(".tutorial-box h4").forEach((heading) => {
+        heading.addEventListener("click", () => {
+          heading.closest(".tutorial-box").classList.toggle("is-collapsed");
+        });
+      });
+
+      document.querySelectorAll(".code-tool-btn").forEach((button) => {
+        button.addEventListener("click", () => {
+          const block = button.closest(".code-demo-block");
+          const fallbackBlock = button.closest(".toggle-content");
+          const editor = (block || fallbackBlock)?.querySelector(
+            ".code-editor",
+          );
+
+          if (!editor) {
+            return;
+          }
+
+          const content = editor.value;
+          const action = button.dataset.action;
+
+          if (action === "copy") {
+            const textToCopy = content || "";
+            if (navigator.clipboard && window.isSecureContext) {
+              navigator.clipboard.writeText(textToCopy);
+            } else {
+              const hiddenInput = document.createElement("textarea");
+              hiddenInput.value = textToCopy;
+              hiddenInput.style.position = "fixed";
+              hiddenInput.style.opacity = "0";
+              document.body.appendChild(hiddenInput);
+              hiddenInput.focus();
+              hiddenInput.select();
+              document.execCommand("copy");
+              hiddenInput.remove();
+            }
+            return;
+          }
+
+          if (action === "download") {
+            const fileName = button.dataset.fileName;
+            const blob = new Blob([content || ""]);
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            URL.revokeObjectURL(url);
+          }
+        });
+      });
+
+      document.querySelectorAll(".code-editor").forEach((editor) => {
+        const shell = document.createElement("div");
+        shell.className = "code-editor-shell";
+
+        const lineNumbers = document.createElement("pre");
+        lineNumbers.className = "code-line-numbers";
+
+        const parent = editor.parentElement;
+        parent.insertBefore(shell, editor);
+        shell.appendChild(lineNumbers);
+        shell.appendChild(editor);
+
+        const lineCount = editor.value.split("\n").length;
+        lineNumbers.innerHTML = Array.from(
+          { length: lineCount },
+          (_, i) => `<span>${i + 1}</span>`,
+        ).join("");
+
+        const syncScroll = () => {
+          lineNumbers.scrollTop = editor.scrollTop;
+        };
+
+        editor.addEventListener("scroll", syncScroll, { passive: true });
+      });
+
+      const revealItems = document.querySelectorAll(
+        ".content-box, .image-container, .stats-grid",
+      );
+      revealItems.forEach((item) => item.classList.add("reveal"));
+
+      const revealObserver = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add("is-visible");
+              revealObserver.unobserve(entry.target);
+            }
+          });
+        },
+        { threshold: 0.12 },
+      );
+
+      revealItems.forEach((item) => revealObserver.observe(item));
+
+      const forceRevealVisible = () => {
+        revealItems.forEach((item) => {
+          if (item.classList.contains("is-visible")) {
+            return;
+          }
+
+          const rect = item.getBoundingClientRect();
+          const isInViewport =
+            rect.top < window.innerHeight * 0.95 && rect.bottom > 0;
+
+          if (isInViewport) {
+            item.classList.add("is-visible");
+            revealObserver.unobserve(item);
+          }
+        });
+      };
+
+      document.querySelectorAll(".toggle-btn").forEach((button) => {
+        button.addEventListener("click", () => {
+          requestAnimationFrame(forceRevealVisible);
+        });
+      });
+
+      window.addEventListener("resize", forceRevealVisible, { passive: true });
+      forceRevealVisible();
+
+      const setupSectionToggle = () => {
+        document.querySelectorAll(".section-title").forEach((title) => {
+          const container = title.parentElement;
+          if (!container) {
+            return;
+          }
+
+          container.classList.add("collapsible-section");
+          title.setAttribute("role", "button");
+          title.setAttribute("tabindex", "0");
+          title.setAttribute("aria-expanded", "true");
+
+          if (!title.querySelector(".section-toggle-icon")) {
+            const icon = document.createElement("i");
+            icon.className = "fas fa-chevron-up section-toggle-icon";
+            title.appendChild(icon);
+          }
+
+          const toggleSection = () => {
+            const isCollapsed = container.classList.toggle("is-collapsed");
+            title.setAttribute("aria-expanded", String(!isCollapsed));
+
+            requestAnimationFrame(() => {
+              forceRevealVisible();
+              requestAnimationFrame(forceRevealVisible);
+            });
+          };
+
+          title.addEventListener("click", toggleSection);
+          title.addEventListener("keydown", (event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              toggleSection();
+            }
+          });
+        });
+      };
+
+      const setAllSectionsCollapsed = (shouldCollapse) => {
+        document.querySelectorAll(".section-title").forEach((title) => {
+          const container = title.parentElement;
+          if (
+            !container ||
+            !container.classList.contains("collapsible-section")
+          ) {
+            return;
+          }
+
+          container.classList.toggle("is-collapsed", shouldCollapse);
+          title.setAttribute("aria-expanded", String(!shouldCollapse));
+        });
+
+        requestAnimationFrame(() => {
+          forceRevealVisible();
+          requestAnimationFrame(forceRevealVisible);
+        });
+      };
+
+      const setupSectionControls = () => {
+        const controls = document.getElementById("section-controls");
+        if (!controls) {
+          return;
+        }
+
+        controls.addEventListener("click", (event) => {
+          const button = event.target.closest("button[data-action]");
+          if (!button) {
+            return;
+          }
+
+          const action = button.dataset.action;
+          if (action === "expand-all") {
+            setAllSectionsCollapsed(false);
+            return;
+          }
+
+          if (action === "collapse-all") {
+            setAllSectionsCollapsed(true);
+          }
+        });
+      };
+
+      const syncSectionControlsOffset = () => {
+        const nav = document.querySelector("nav");
+        const controls = document.getElementById("section-controls");
+        if (!nav || !controls) {
+          return;
+        }
+
+        controls.style.top = `${nav.offsetHeight + 10}px`;
+      };
+
+      const setupPipelineSwitching = () => {
+        const steps = document.querySelectorAll("[data-pipeline-step]");
+        const panels = document.querySelectorAll("[data-pipeline-panel]");
+
+        if (!steps.length || !panels.length) {
+          return;
+        }
+
+        const activateStage = (stage) => {
+          steps.forEach((step) => {
+            const isActive = step.dataset.pipelineStep === stage;
+            step.classList.toggle("is-active", isActive);
+          });
+
+          panels.forEach((panel) => {
+            const isActive = panel.dataset.pipelinePanel === stage;
+            panel.classList.toggle("is-active", isActive);
+          });
+
+          requestAnimationFrame(forceRevealVisible);
+        };
+
+        steps.forEach((step) => {
+          step.addEventListener("click", () => {
+            activateStage(step.dataset.pipelineStep);
+          });
+        });
+      };
+
+      setupSectionToggle();
+      setupSectionControls();
+      syncSectionControlsOffset();
+      setupPipelineSwitching();
+
+      window.addEventListener("resize", syncSectionControlsOffset, {
+        passive: true,
+      });
+    </script>
+  </body>
 </html>
