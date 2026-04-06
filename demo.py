@@ -3,6 +3,7 @@ import torch.nn as nn
 import gradio as gr
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import numpy as np
+import time  # <-- Added time module
 
 # Import RNN models and tokenizer from rnn.py
 from rnn import BiLSTM, BiGRU, tokenize as rnn_tokenize
@@ -57,19 +58,28 @@ def format_tensor(t):
 
 def make_block(title, shape, content, color1, color2, is_last=False):
     hover_text = f"TENSOR SHAPE: {shape}&#10;SAMPLE DATA: {content}"
+    
+    # Apply special CSS styling if it's the final block
+    if is_last:
+        box_style = f"box-shadow: 0 0 15px {color2}, 0 4px 6px rgba(0,0,0,0.3); font-size: 1em; padding: 16px; border: 2px solid white;"
+    else:
+        box_style = "box-shadow: 0 4px 6px rgba(0,0,0,0.2); font-size: 0.85em; padding: 12px;"
+
     html = f'''
     <div style="background: linear-gradient(135deg, {color1} 0%, {color2} 100%); 
-                color: white; padding: 12px; border-radius: 8px; margin: 5px auto; 
+                color: white; border-radius: 8px; margin: 8px auto; 
                 width: 95%; text-align: center; font-weight: bold; cursor: crosshair; 
-                box-shadow: 0 4px 6px rgba(0,0,0,0.2); transition: transform 0.2s; font-size: 0.85em;" 
-         onmouseover="this.style.transform='scale(1.03)'" 
+                transition: transform 0.2s; {box_style}" 
+         onmouseover="this.style.transform='scale(1.05)'" 
          onmouseout="this.style.transform='scale(1)'"
          title="{hover_text}">
         {title}
     </div>
     '''
+    
     if not is_last:
         html += '<div style="text-align: center; color: gray; font-size: 18px; margin: -5px 0;">⬇</div>'
+        
     return html
 
 # ==========================================
@@ -77,11 +87,16 @@ def make_block(title, shape, content, color1, color2, is_last=False):
 # ==========================================
 def get_transformer_html(text, model, tokenizer, colors):
     inputs = tokenizer(text, return_tensors="pt", max_length=128, truncation=True).to(device)
+    
+    # Start the timer!
+    start_time = time.perf_counter()
     with torch.no_grad():
         outputs = model(**inputs, output_hidden_states=True)
         hidden_states = outputs.hidden_states
         logits = outputs.logits
         probs = torch.nn.functional.softmax(logits[0], dim=0)
+    # Stop the timer!
+    inf_time = time.perf_counter() - start_time
     
     pred = CLASS_NAMES[torch.argmax(probs).item()]
     
@@ -99,7 +114,10 @@ def get_transformer_html(text, model, tokenizer, colors):
         html += make_block(f"3.{i} Transformer Block", s, c, colors[2], colors[3])
         
     s, c = format_tensor(logits)
-    html += make_block(f"4. Classification Head: {pred}", s, c, "#11998e", "#38ef7d", is_last=True)
+    # Added inference time to the final block
+    final_title = f"🎯 Classification Head<br><span style='font-size:1.3em; font-weight:900;'>{pred}</span><br><span style='font-size:0.7em; font-weight:normal;'>⏱️ {inf_time:.4f} seconds</span>"
+    html += make_block(final_title, s, c, "#11998e", "#38ef7d", is_last=True)
+    
     return html
 
 def get_rnn_html(text, model, is_lstm, colors):
@@ -108,6 +126,8 @@ def get_rnn_html(text, model, is_lstm, colors):
     if not token_ids: token_ids = [1]
     input_tensor = torch.tensor([token_ids]).to(device)
     
+    # Start the timer!
+    start_time = time.perf_counter()
     with torch.no_grad():
         embeds = model.embedding(input_tensor)
         # Handle BiLSTM vs BiGRU output tuple differences
@@ -119,6 +139,8 @@ def get_rnn_html(text, model, is_lstm, colors):
         final_hidden = torch.cat((hn[-2,:,:], hn[-1,:,:]), dim=1)
         logits = model.fc(final_hidden)
         probs = torch.nn.functional.softmax(logits[0], dim=0)
+    # Stop the timer!
+    inf_time = time.perf_counter() - start_time
         
     pred = CLASS_NAMES[torch.argmax(probs).item()]
     
@@ -134,7 +156,10 @@ def get_rnn_html(text, model, is_lstm, colors):
     html += make_block(f"3. {layer_name}", s, c, colors[2], colors[3])
     
     s, c = format_tensor(logits)
-    html += make_block(f"4. Classification Head: {pred}", s, c, "#11998e", "#38ef7d", is_last=True)
+    # Added inference time to the final block
+    final_title = f"🎯 Classification Head<br><span style='font-size:1.3em; font-weight:900;'>{pred}</span><br><span style='font-size:0.7em; font-weight:normal;'>⏱️ {inf_time:.4f} seconds</span>"
+    html += make_block(final_title, s, c, "#11998e", "#38ef7d", is_last=True)
+    
     return html
 
 def generate_all_flowcharts(text):
