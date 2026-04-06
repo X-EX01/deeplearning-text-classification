@@ -16,12 +16,9 @@ CLASS_NAMES = [
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-# ==========================================
 # 1. Load Models
-# ==========================================
 print("Loading saved models...")
 
-# Paths updated to match train.py/test.py naming conventions
 MODELS_DIR = "models" 
 
 # Transformers
@@ -46,9 +43,7 @@ bigru_model = BiGRU(100, 128, 14, dummy_matrix).to(device)
 bigru_model.load_state_dict(torch.load(f"{MODELS_DIR}/bigru/bigru_weights.pth", weights_only=True, map_location=device))
 bigru_model.eval()
 
-# ==========================================
 # 2. Helper Functions
-# ==========================================
 def format_tensor(t):
     if isinstance(t, list): return str(t)
     t = t.detach().cpu().numpy()
@@ -59,7 +54,6 @@ def format_tensor(t):
 def make_block(title, shape, content, color1, color2, is_last=False):
     hover_text = f"TENSOR SHAPE: {shape}&#10;SAMPLE DATA: {content}"
     
-    # Apply special CSS styling if it's the final block
     if is_last:
         box_style = f"box-shadow: 0 0 15px {color2}, 0 4px 6px rgba(0,0,0,0.3); font-size: 1em; padding: 16px; border: 2px solid white;"
     else:
@@ -82,20 +76,16 @@ def make_block(title, shape, content, color1, color2, is_last=False):
         
     return html
 
-# ==========================================
 # 3. Processing Logic
-# ==========================================
 def get_transformer_html(text, model, tokenizer, colors):
     inputs = tokenizer(text, return_tensors="pt", max_length=128, truncation=True).to(device)
     
-    # Start the timer!
     start_time = time.perf_counter()
     with torch.no_grad():
         outputs = model(**inputs, output_hidden_states=True)
         hidden_states = outputs.hidden_states
         logits = outputs.logits
         probs = torch.nn.functional.softmax(logits[0], dim=0)
-    # Stop the timer!
     inf_time = time.perf_counter() - start_time
     
     pred = CLASS_NAMES[torch.argmax(probs).item()]
@@ -114,7 +104,6 @@ def get_transformer_html(text, model, tokenizer, colors):
         html += make_block(f"3.{i} Transformer Block", s, c, colors[2], colors[3])
         
     s, c = format_tensor(logits)
-    # Added inference time to the final block
     final_title = f"🎯 Classification Head<br><span style='font-size:1.3em; font-weight:900;'>{pred}</span><br><span style='font-size:0.7em; font-weight:normal;'>⏱️ {inf_time:.4f} seconds</span>"
     html += make_block(final_title, s, c, "#11998e", "#38ef7d", is_last=True)
     
@@ -126,7 +115,6 @@ def get_rnn_html(text, model, is_lstm, colors):
     if not token_ids: token_ids = [1]
     input_tensor = torch.tensor([token_ids]).to(device)
     
-    # Start the timer!
     start_time = time.perf_counter()
     with torch.no_grad():
         embeds = model.embedding(input_tensor)
@@ -139,7 +127,6 @@ def get_rnn_html(text, model, is_lstm, colors):
         final_hidden = torch.cat((hn[-2,:,:], hn[-1,:,:]), dim=1)
         logits = model.fc(final_hidden)
         probs = torch.nn.functional.softmax(logits[0], dim=0)
-    # Stop the timer!
     inf_time = time.perf_counter() - start_time
         
     pred = CLASS_NAMES[torch.argmax(probs).item()]
@@ -156,7 +143,6 @@ def get_rnn_html(text, model, is_lstm, colors):
     html += make_block(f"3. {layer_name}", s, c, colors[2], colors[3])
     
     s, c = format_tensor(logits)
-    # Added inference time to the final block
     final_title = f"🎯 Classification Head<br><span style='font-size:1.3em; font-weight:900;'>{pred}</span><br><span style='font-size:0.7em; font-weight:normal;'>⏱️ {inf_time:.4f} seconds</span>"
     html += make_block(final_title, s, c, "#11998e", "#38ef7d", is_last=True)
     
@@ -179,9 +165,7 @@ def generate_all_flowcharts(text):
 
     return d_html, r_html, l_html, g_html
 
-# ==========================================
 # 4. Gradio UI
-# ==========================================
 with gr.Blocks(title="Deep Learning Architecture X-Ray") as demo:
     gr.Markdown("# Multimodal Architectural Comparison")
     gr.Markdown("Compare how different backbones process the same text. **Hover over blocks** to see tensor shapes.")
@@ -189,9 +173,6 @@ with gr.Blocks(title="Deep Learning Architecture X-Ray") as demo:
     text_input = gr.Textbox(lines=2, placeholder="Type something...", label="Input Text")
     btn = gr.Button("Analyze All Models", variant="primary")
     
-    # ----------------------------------------------------
-    # ALL FOUR MODELS ON A SINGLE ROW
-    # ----------------------------------------------------
     with gr.Row():
         with gr.Column(min_width=150):
             gr.Markdown("### DistilBERT")
